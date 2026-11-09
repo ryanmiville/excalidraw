@@ -4592,7 +4592,13 @@ class App extends React.Component<AppProps, AppState> {
 
     // insert text only if we tapped twice with a single finger at approximately the same position
     // event.touches.length === 1 will also prevent inserting text when user's zooming
-    if (didTapTwice && event.touches.length === 1 && firstTapPosition) {
+    if (
+      didTapTwice &&
+      event.touches.length === 1 &&
+      firstTapPosition &&
+      // PROTOTYPE (text flows): already handled as a Pencil double-tap
+      Date.now() - this.lastPenDoubleTapAt > 500
+    ) {
       const touch = event.touches[0];
       const distance = pointDistance(
         pointFrom(touch.clientX, touch.clientY),
@@ -6516,6 +6522,58 @@ class App extends React.Component<AppProps, AppState> {
    * clear them once the second tap has landed.
    */
   private doubleTapDeferred = false;
+  /** PROTOTYPE (text flows): the last quick Pencil tap, for double-taps */
+  private lastPenTap: { x: number; y: number; at: number } | null = null;
+  private lastPenDoubleTapAt = 0;
+
+  /**
+   * Returns true when the press was a Pencil double-tap that opened text and
+   * should not reach the active tool (selection tools only — drawing tools
+   * finish their stroke and the dots are cleaned up).
+   */
+  private maybePenDoubleTap = (event: React.PointerEvent<HTMLElement>) => {
+    const downAt = event.timeStamp;
+    const { clientX, clientY } = event;
+    const previous = this.lastPenTap;
+    this.lastPenTap = null;
+
+    if (
+      previous &&
+      downAt - previous.at < 400 &&
+      Math.hypot(clientX - previous.x, clientY - previous.y) <=
+        DOUBLE_TAP_POSITION_THRESHOLD
+    ) {
+      this.lastPenDoubleTapAt = Date.now();
+      const isSelectionTool =
+        this.state.activeTool.type === this.state.preferredSelectionTool.type;
+      this.handleCanvasDoubleClick({
+        clientX,
+        clientY,
+        type: "touch",
+        altKey: false,
+        ctrlKey: false,
+        metaKey: false,
+        shiftKey: false,
+      });
+      return isSelectionTool && this.text.isEditingTextContent();
+    }
+
+    // remember this press if it turns out to be a tap
+    const onUp = (up: PointerEvent) => {
+      if (up.pointerId !== event.pointerId) {
+        return;
+      }
+      this.ownerWindow.removeEventListener("pointerup", onUp);
+      if (
+        up.timeStamp - downAt < 300 &&
+        Math.hypot(up.clientX - clientX, up.clientY - clientY) < 12
+      ) {
+        this.lastPenTap = { x: up.clientX, y: up.clientY, at: up.timeStamp };
+      }
+    };
+    this.ownerWindow.addEventListener("pointerup", onUp);
+    return false;
+  };
 
   private removeDoubleTapDots = (clientX: number, clientY: number) => {
     const startedAt = Date.now();
@@ -7656,6 +7714,15 @@ class App extends React.Component<AppProps, AppState> {
       (DOUBLE_TAP_TEXT_TOOLS.includes(this.state.activeTool.type) ||
         this.state.activeTool.type === "autoshape") &&
       !(this.state.penMode && event.pointerType === "touch")
+    ) {
+      return;
+    }
+    // PROTOTYPE (text flows): iPadOS doesn't reliably send touch events for
+    // Pencil taps, so a Pencil double-tap is read off pointer events
+    if (
+      event.pointerType === "pen" &&
+      textFlowHas("doubleTapAnywhere") &&
+      this.maybePenDoubleTap(event)
     ) {
       return;
     }
