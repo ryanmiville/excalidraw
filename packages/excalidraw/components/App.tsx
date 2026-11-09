@@ -6480,6 +6480,8 @@ class App extends React.Component<AppProps, AppState> {
             // container binds even when its stroke wasn't hit (Alt keeps the
             // free-text-at-point escape hatch)
             this.state.activeTool.type === "autoshape" ||
+            // PROTOTYPE (text flows): same for a double-tap in Draw & co.
+            doubleTapAnywhere ||
             hasBoundTextElement(container) ||
             !isTransparent(container.backgroundColor) ||
             hitElementItself({

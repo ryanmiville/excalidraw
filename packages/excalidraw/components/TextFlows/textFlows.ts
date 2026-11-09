@@ -86,7 +86,10 @@ const readStored = (): TextFlowId => {
   return "combo";
 };
 
-let current: TextFlowId = readStored();
+// round 2: the double-tap + Scribble + chip combo is settled; what's being
+// compared now is how a shape's label gets written (see LABEL_MODES)
+let current: TextFlowId = "combo";
+void readStored;
 
 export const getTextFlow = () => current;
 
@@ -103,5 +106,73 @@ export const textFlowAtom = atom(
       localStorage.setItem(STORAGE_KEY, next);
     } catch {}
     set(baseAtom, next);
+  },
+);
+
+/** round 2: where you write a shape's label */
+export type LabelMode = "inline" | "bubble" | "zoom" | "strip" | "anywhere";
+
+export const LABEL_MODES: {
+  id: LabelMode;
+  letter: string;
+  label: string;
+  hint: string;
+}[] = [
+  {
+    id: "inline",
+    letter: "–",
+    label: "In the shape",
+    hint: "Round 1: the box sits on the shape",
+  },
+  {
+    id: "bubble",
+    letter: "1",
+    label: "Bubble",
+    hint: "Write in a big bubble beside the shape, pointing at it",
+  },
+  {
+    id: "zoom",
+    letter: "2",
+    label: "Zoom in",
+    hint: "The canvas zooms in so the shape is big enough to write in",
+  },
+  {
+    id: "strip",
+    letter: "3",
+    label: "Bottom panel",
+    hint: "Always write in a wide panel at the bottom, linked to the shape",
+  },
+  {
+    id: "anywhere",
+    letter: "4",
+    label: "Write anywhere",
+    hint: "Write anywhere on screen; the text appears in the shape",
+  },
+];
+
+const LABEL_MODE_KEY = "excalidraw.labelModePrototype";
+
+let currentLabelMode: LabelMode = (() => {
+  try {
+    const value = localStorage.getItem(LABEL_MODE_KEY);
+    if (value && LABEL_MODES.some((mode) => mode.id === value)) {
+      return value as LabelMode;
+    }
+  } catch {}
+  return "bubble";
+})();
+
+export const getLabelMode = () => currentLabelMode;
+
+const labelModeBaseAtom = atom<LabelMode>(currentLabelMode);
+
+export const labelModeAtom = atom(
+  (get) => get(labelModeBaseAtom),
+  (_get, set, next: LabelMode) => {
+    currentLabelMode = next;
+    try {
+      localStorage.setItem(LABEL_MODE_KEY, next);
+    } catch {}
+    set(labelModeBaseAtom, next);
   },
 );

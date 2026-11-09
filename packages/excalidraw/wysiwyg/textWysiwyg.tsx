@@ -1339,10 +1339,14 @@ export const textWysiwyg = ({
 
   if (textFlowHas("scribblePad") && app.editorInterface.isTouchScreen) {
     scribblePad = attachScribblePad({
+      app,
       editable,
       editorBox,
       ownerWindow,
-      isLabel: isBoundToContainer(element),
+      container: getContainerElement(
+        element,
+        app.scene.getNonDeletedElementsMap(),
+      ),
       onDone: () => handleSubmit(),
     });
     updateWysiwygStyle();
