@@ -25,8 +25,10 @@ import type {
 
 import type React from "react";
 
+import { textFlowHas } from "./TextFlows/textFlows";
+
 import type App from "./App";
-import type { AppState, PointerDownState } from "../types";
+import type { AppState, PointerDownState, ToolType } from "../types";
 
 type ScenePoint = { x: number; y: number };
 
@@ -96,6 +98,9 @@ const isSameHover = (
  */
 export class AppTextTool {
   constructor(private app: App) {}
+
+  /** PROTOTYPE (text flows): the tool Text was picked from */
+  public toolBeforeText: Exclude<ToolType, "text" | "image"> | null = null;
 
   /**
    * A click on an empty container's center, armed on pointerdown and decided
@@ -439,10 +444,15 @@ export class AppTextTool {
   private finish = () => {
     this.clearHover();
     if (!this.app.isToolLocked()) {
+      // PROTOTYPE (text flows): land back on the tool Text was picked from
+      const backTo =
+        textFlowHas("toolbarText") && this.toolBeforeText
+          ? this.toolBeforeText
+          : this.app.state.preferredSelectionTool.type;
       this.app.setState(
         {
           activeTool: updateActiveTool(this.app.state, {
-            type: this.app.state.preferredSelectionTool.type,
+            type: backTo,
           }),
         },
         // reset once the tool revert has settled
