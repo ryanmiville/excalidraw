@@ -179,9 +179,9 @@
 
   .excalidraw-labelwriter-tail--bubble {
     fill: var(--island-bg-color);
-    stroke: var(--color-primary);
-    stroke-width: 2;
-    stroke-linejoin: round;
+    stroke: none;
+    filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.12))
+      drop-shadow(0 6px 18px rgb(0 0 0 / 0.14));
   }
 
   .excalidraw-labelwriter-tail--strip {
@@ -216,7 +216,6 @@
     z-index: 4;
   }
 
-  textarea.excalidraw-wysiwyg--label-bubble,
   textarea.excalidraw-wysiwyg--label-strip {
     min-width: 0;
     padding: 14px 16px !important;
@@ -228,6 +227,22 @@
     background: var(--island-bg-color) !important;
     white-space: pre-wrap !important;
     color: var(--text-primary-color) !important;
+  }
+
+  // the bubble itself is drawn behind the editor (one outline with its tail)
+  textarea.excalidraw-wysiwyg--label-bubble {
+    min-width: 0;
+    padding: 16px 18px !important;
+    box-sizing: border-box;
+    outline: 0 !important;
+    box-shadow: none;
+    background: transparent !important;
+    white-space: pre-wrap !important;
+    color: var(--text-primary-color) !important;
+
+    &::placeholder {
+      color: var(--color-gray-40);
+    }
   }
 
   textarea.excalidraw-wysiwyg--label-zoom {

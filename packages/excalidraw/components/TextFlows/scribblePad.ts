@@ -212,17 +212,18 @@ export const attachScribblePad = ({
     minHeight: number,
   ) => {
     // the editor's own text measuring keeps running; only where and how big
-    // the box is changes
-    const height = Math.max(minHeight, editable.scrollHeight);
+    // the box is changes (measured at its final width)
     Object.assign(editable.style, {
       left: `${left}px`,
       top: `${top}px`,
       width: `${width}px`,
-      height: `${height}px`,
+      height: `${minHeight}px`,
       transform: "none",
       marginLeft: "0px",
       textAlign: "left",
     });
+    const height = Math.max(minHeight, editable.scrollHeight);
+    editable.style.height = `${height}px`;
     return height;
   };
 
@@ -356,31 +357,60 @@ export const attachScribblePad = ({
       const { left, top } = spot(side);
       const height = placeEditor(left, top, width, minHeight);
 
-      // speech-bubble tail from the bubble's edge to the shape
-      let d: string;
-      if (side === "above") {
-        const cx = Math.max(left + 30, Math.min(left + width - 30, midX));
-        d = `M ${cx - 18} ${top + height - 4} L ${midX} ${shape.top - 10} L ${
-          cx + 18
-        } ${top + height - 4} Z`;
-      } else if (side === "below") {
-        const cx = Math.max(
-          left + 30,
-          Math.min(left + width - 30, (shape.left + shape.right) / 2),
-        );
-        d = `M ${cx - 18} ${top + 4} L ${(shape.left + shape.right) / 2} ${
-          shape.bottom + 10
-        } L ${cx + 18} ${top + 4} Z`;
-      } else {
-        const edgeX = side === "right" ? left + 4 : left + width - 4;
-        const tipX = side === "right" ? shape.right + 10 : shape.left - 10;
-        const cy = Math.max(top + 24, Math.min(top + height - 24, shapeMidY));
-        d = `M ${edgeX} ${cy - 18} L ${tipX} ${shapeMidY} L ${edgeX} ${
-          cy + 18
-        } Z`;
+      // the bubble and its tail are one outline; the editor sits inside it
+      const right = left + width;
+      const bottom = top + height;
+      const r = 18;
+      const hw = 16;
+      const along = (from: number, to: number, value: number) =>
+        Math.max(from + r + hw, Math.min(to - r - hw, value));
+      // tail: base centered on the edge facing the shape, tip just off it
+      const tailTo = (
+        x1: number,
+        y1: number,
+        tipX: number,
+        tipY: number,
+        x2: number,
+        y2: number,
+      ) => {
+        // slightly curved sides, like a drawn speech bubble
+        const c1x = x1 + (tipX - x1) * 0.45;
+        const c1y = y1 + (tipY - y1) * 0.45;
+        const c2x = x2 + (tipX - x2) * 0.45;
+        const c2y = y2 + (tipY - y2) * 0.45;
+        return `L ${x1} ${y1} Q ${c1x} ${c1y} ${tipX} ${tipY} Q ${c2x} ${c2y} ${x2} ${y2} `;
+      };
+      let d = `M ${left + r} ${top} `;
+      if (side === "below") {
+        const cx = along(left, right, midX);
+        d += tailTo(cx - hw, top, midX, shape.bottom + 12, cx + hw, top);
       }
+      d += `L ${right - r} ${top} Q ${right} ${top} ${right} ${top + r} `;
+      if (side === "left") {
+        const cy = along(top, bottom, shapeMidY);
+        d += tailTo(right, cy - hw, shape.left - 12, shapeMidY, right, cy + hw);
+      }
+      d += `L ${right} ${bottom - r} Q ${right} ${bottom} ${
+        right - r
+      } ${bottom} `;
+      if (side === "above") {
+        const cx = along(left, right, midX);
+        d += tailTo(cx + hw, bottom, midX, shape.top - 12, cx - hw, bottom);
+      }
+      d += `L ${left + r} ${bottom} Q ${left} ${bottom} ${left} ${bottom - r} `;
+      if (side === "right") {
+        const cy = along(top, bottom, shapeMidY);
+        d += tailTo(left, cy + hw, shape.right + 12, shapeMidY, left, cy - hw);
+      }
+      d += `L ${left} ${top + r} Q ${left} ${top} ${left + r} ${top} Z`;
       tail.setAttribute("d", d);
-      placeBarUnder(box);
+      // buttons under the bubble's right end (over it when the tail is below)
+      const barWidth = bar.offsetWidth || 170;
+      bar.style.left = `${right - barWidth}px`;
+      bar.style.top =
+        side === "above"
+          ? `${top - (bar.offsetHeight || 48) - 12}px`
+          : `${bottom + 12}px`;
       return;
     }
 
