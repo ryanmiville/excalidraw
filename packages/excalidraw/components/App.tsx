@@ -6555,7 +6555,10 @@ class App extends React.Component<AppProps, AppState> {
         metaKey: false,
         shiftKey: false,
       });
-      return isSelectionTool && this.text.isEditingTextContent();
+      // the second tap is the double-tap's, not the tool's: keep it from the
+      // selection and Shapes tools (Shapes would finish its own stroke,
+      // ending the edit — the editing state isn't flushed yet to check)
+      return isSelectionTool || this.state.activeTool.type === "autoshape";
     }
 
     // remember this press if it turns out to be a tap
