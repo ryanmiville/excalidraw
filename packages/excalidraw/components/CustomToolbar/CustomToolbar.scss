@@ -16,16 +16,17 @@
       pointer-events: auto;
     }
 
+    // left/right: live between the top-corner buttons and the footer
     &--left {
       left: 1rem;
-      top: 50%;
-      transform: translateY(-50%);
+      top: var(--ct-safe-top);
+      bottom: var(--ct-safe-bottom);
       flex-direction: row;
     }
     &--right {
       right: 1rem;
-      top: 50%;
-      transform: translateY(-50%);
+      top: var(--ct-safe-top);
+      bottom: var(--ct-safe-bottom);
       flex-direction: row-reverse;
     }
     &--top {
@@ -235,13 +236,13 @@
 
     &--right {
       right: 1rem;
-      top: 50%;
-      transform: translateY(-50%);
+      top: var(--ct-safe-top);
+      bottom: var(--ct-safe-bottom);
     }
     &--left {
       left: 1rem;
-      top: 50%;
-      transform: translateY(-50%);
+      top: var(--ct-safe-top);
+      bottom: var(--ct-safe-bottom);
     }
     &--top {
       top: 1rem;
@@ -255,8 +256,31 @@
     }
   }
 
+  .ct-dock,
+  .ct-side {
+    // clear the menu / share / library buttons above and zoom / help below
+    --ct-safe-top: 4.25rem;
+    --ct-safe-bottom: 4.25rem;
+  }
+
+  .ct-dock--left,
+  .ct-dock--right,
+  .ct-side--left,
+  .ct-side--right {
+    > .ct-toolbar,
+    > .ct-styles {
+      max-height: 100%;
+    }
+  }
+
+  .ct-styles {
+    display: flex;
+    flex-direction: column;
+  }
+
   .ct-styles__island {
-    max-height: calc(100vh - 9rem);
+    min-height: 0;
+    max-height: calc(100vh - 8.5rem);
     overflow-y: auto;
   }
   .ct-styles--full .ct-styles__island {

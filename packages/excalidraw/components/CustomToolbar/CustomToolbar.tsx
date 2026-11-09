@@ -95,13 +95,6 @@ const popoverSide = (config: ToolbarConfig) =>
     bottom: "top",
   }[config.position] as "right" | "left" | "bottom" | "top");
 
-const OPPOSITE = {
-  left: "right",
-  right: "left",
-  top: "bottom",
-  bottom: "top",
-} as const;
-
 /** compact styles panel, regardless of screen size */
 const ForceCompact = ({ children }: { children: React.ReactNode }) => {
   const editorInterface = useEditorInterface();
@@ -430,9 +423,10 @@ export const CustomToolbar = (props: Props) => {
   // --- where the full style options go ---------------------------------------
 
   const full = config.panel === "full";
-  const opposite = config.stylesSide === "opposite";
-  const panelEdge = opposite ? OPPOSITE[config.position] : config.position;
-  const panelVertical = panelEdge === "left" || panelEdge === "right";
+  const panelEdge = config.panelSide;
+  // docked right beside the toolbar, or on its own screen edge
+  const opposite = panelEdge !== config.position;
+  const panelVertical = true;
   let besidePanel: React.ReactNode = null;
   let peek: React.ReactNode = null;
 

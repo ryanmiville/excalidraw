@@ -93,8 +93,11 @@ export type ToolbarConfig = {
   stylesHidden: boolean;
   /** the stock full options panel, or the compact (tablet) one */
   panel: "full" | "compact";
-  /** options next to the toolbar, or on the opposite edge of the screen */
-  stylesSide: "toolbar" | "opposite";
+  /**
+   * which screen edge the options panel hugs; when it matches the toolbar's
+   * edge, the panel docks right beside the toolbar
+   */
+  panelSide: "left" | "right";
 };
 
 export const DEFAULT_ITEMS: ToolbarItemId[] = [
@@ -155,7 +158,7 @@ export const DEFAULT_TOOLBAR_CONFIG: ToolbarConfig = {
   styles: "beside",
   stylesHidden: false,
   panel: "full",
-  stylesSide: "toolbar",
+  panelSide: "right",
 };
 
 const STORAGE_KEY = "excalidraw.toolbarConfig";
@@ -165,6 +168,17 @@ const loadConfig = (): ToolbarConfig => {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
+      // older saved setups said "toolbar"/"opposite" instead of a side
+      if (!parsed.panelSide && parsed.stylesSide) {
+        const pos = parsed.position ?? DEFAULT_TOOLBAR_CONFIG.position;
+        const same = pos === "left" || pos === "right" ? pos : "right";
+        parsed.panelSide =
+          parsed.stylesSide === "toolbar"
+            ? same
+            : same === "left"
+            ? "right"
+            : "left";
+      }
       return {
         ...DEFAULT_TOOLBAR_CONFIG,
         ...parsed,
@@ -192,8 +206,8 @@ const applyUrlOverrides = (config: ToolbarConfig): ToolbarConfig => {
     if (panel === "full" || panel === "compact") {
       config = { ...config, panel };
     }
-    if (side === "toolbar" || side === "opposite") {
-      config = { ...config, stylesSide: side };
+    if (side === "left" || side === "right") {
+      config = { ...config, panelSide: side };
     }
     const next = { ...config };
     if (position && ["left", "right", "top", "bottom"].includes(position)) {
