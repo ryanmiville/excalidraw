@@ -386,6 +386,7 @@ import { AppArrowText } from "./App.arrowText";
 import { AppClipboard } from "./App.clipboard";
 import { AppText } from "./App.text";
 import { AppTextTool } from "./App.textTool";
+import { getTextFlow, textFlowHas } from "./TextFlows/textFlows";
 import { AppBucketFill } from "./App.bucketFill";
 import { AppToolDrag, TOOL_DRAG_PREVIEW_OPACITY } from "./App.toolDrag";
 import { AppCursor } from "./App.cursor";
@@ -471,6 +472,19 @@ import type { Action, ActionResult } from "../actions/types";
 
 const AppContext = React.createContext<AppClassProperties>(null!);
 const AppPropsContext = React.createContext<AppProps>(null!);
+
+/** PROTOTYPE (text flows): tools a double-tap types in */
+const DOUBLE_TAP_TEXT_TOOLS: readonly string[] = [
+  "freedraw",
+  "eraser",
+  "rectangle",
+  "diamond",
+  "ellipse",
+  "arrow",
+  "line",
+  "lasso",
+  "hand",
+];
 
 const editorInterfaceContextInitialValue: EditorInterface = {
   formFactor: "desktop",
@@ -4339,6 +4353,19 @@ class App extends React.Component<AppProps, AppState> {
     // neither the text tool's hover affordance nor a pending center click
     // may outlive the tool, however it gets left (Esc/finalize paths bypass
     // setActiveTool) — the tool coming back mid-press must not revive them
+    // PROTOTYPE (text flows): remember the tool Text was picked from, so a
+    // placed text can hand it back
+    if (
+      prevState.activeTool.type !== "text" &&
+      this.state.activeTool.type === "text"
+    ) {
+      this.textTool.toolBeforeText =
+        prevState.activeTool.type === "custom" ||
+        prevState.activeTool.type === "image"
+          ? null
+          : prevState.activeTool.type;
+    }
+
     if (
       prevState.activeTool.type === "text" &&
       this.state.activeTool.type !== "text"
@@ -4565,7 +4592,13 @@ class App extends React.Component<AppProps, AppState> {
 
     // insert text only if we tapped twice with a single finger at approximately the same position
     // event.touches.length === 1 will also prevent inserting text when user's zooming
-    if (didTapTwice && event.touches.length === 1 && firstTapPosition) {
+    if (
+      didTapTwice &&
+      event.touches.length === 1 &&
+      firstTapPosition &&
+      // PROTOTYPE (text flows): already handled as a Pencil double-tap
+      Date.now() - this.lastPenDoubleTapAt > 500
+    ) {
       const touch = event.touches[0];
       const distance = pointDistance(
         pointFrom(touch.clientX, touch.clientY),
@@ -6245,11 +6278,42 @@ class App extends React.Component<AppProps, AppState> {
     // autoshape tool (double-click-to-type without leaving the tool; all the
     // selection-dependent branches below are inert there since autoshape
     // never selects anything)
+    const doubleTapAnywhere =
+      textFlowHas("doubleTapAnywhere") &&
+      DOUBLE_TAP_TEXT_TOOLS.includes(this.state.activeTool.type);
     if (
       this.state.activeTool.type !== this.state.preferredSelectionTool.type &&
-      this.state.activeTool.type !== "autoshape"
+      this.state.activeTool.type !== "autoshape" &&
+      !doubleTapAnywhere
     ) {
       return;
+    }
+    if (
+      doubleTapAnywhere &&
+      this.state.activeTool.type !== this.state.preferredSelectionTool.type
+    ) {
+      // the second tap is still drawing: let the tool finish its stroke
+      // (finalizing would end the edit), then type
+      if (!this.doubleTapDeferred) {
+        const onUp = () => {
+          this.ownerWindow.removeEventListener("pointerup", onUp);
+          this.ownerWindow.clearTimeout(fallback);
+          // after every pointerup handler, whichever order they were added
+          this.ownerWindow.setTimeout(run);
+        };
+        const run = () => {
+          this.removeDoubleTapDots(event.clientX, event.clientY);
+          this.doubleTapDeferred = true;
+          try {
+            this.handleCanvasDoubleClick(event);
+          } finally {
+            this.doubleTapDeferred = false;
+          }
+        };
+        const fallback = this.ownerWindow.setTimeout(onUp, 500);
+        this.ownerWindow.addEventListener("pointerup", onUp);
+        return;
+      }
     }
 
     const selectedElements = this.scene.getSelectedElements(this.state);
@@ -6422,6 +6486,8 @@ class App extends React.Component<AppProps, AppState> {
             // container binds even when its stroke wasn't hit (Alt keeps the
             // free-text-at-point escape hatch)
             this.state.activeTool.type === "autoshape" ||
+            // PROTOTYPE (text flows): same for a double-tap in Draw & co.
+            doubleTapAnywhere ||
             hasBoundTextElement(container) ||
             !isTransparent(container.backgroundColor) ||
             hitElementItself({
@@ -6449,6 +6515,99 @@ class App extends React.Component<AppProps, AppState> {
         });
       }
     }
+  };
+
+  /**
+   * PROTOTYPE (text flows): a double-tap in Draw leaves two dots behind —
+   * clear them once the second tap has landed.
+   */
+  private doubleTapDeferred = false;
+  /** PROTOTYPE (text flows): the last quick Pencil tap, for double-taps */
+  private lastPenTap: { x: number; y: number; at: number } | null = null;
+  private lastPenDoubleTapAt = 0;
+
+  /**
+   * Returns true when the press was a Pencil double-tap that opened text and
+   * should not reach the active tool (selection tools only — drawing tools
+   * finish their stroke and the dots are cleaned up).
+   */
+  private maybePenDoubleTap = (event: React.PointerEvent<HTMLElement>) => {
+    const downAt = event.timeStamp;
+    const { clientX, clientY } = event;
+    const previous = this.lastPenTap;
+    this.lastPenTap = null;
+
+    if (
+      previous &&
+      downAt - previous.at < 400 &&
+      Math.hypot(clientX - previous.x, clientY - previous.y) <=
+        DOUBLE_TAP_POSITION_THRESHOLD
+    ) {
+      this.lastPenDoubleTapAt = Date.now();
+      const isSelectionTool =
+        this.state.activeTool.type === this.state.preferredSelectionTool.type;
+      this.handleCanvasDoubleClick({
+        clientX,
+        clientY,
+        type: "touch",
+        altKey: false,
+        ctrlKey: false,
+        metaKey: false,
+        shiftKey: false,
+      });
+      // the second tap is the double-tap's, not the tool's: keep it from the
+      // selection and Shapes tools (Shapes would finish its own stroke,
+      // ending the edit — the editing state isn't flushed yet to check)
+      return isSelectionTool || this.state.activeTool.type === "autoshape";
+    }
+
+    // remember this press if it turns out to be a tap
+    const onUp = (up: PointerEvent) => {
+      if (up.pointerId !== event.pointerId) {
+        return;
+      }
+      this.ownerWindow.removeEventListener("pointerup", onUp);
+      if (
+        up.timeStamp - downAt < 300 &&
+        Math.hypot(up.clientX - clientX, up.clientY - clientY) < 12
+      ) {
+        this.lastPenTap = { x: up.clientX, y: up.clientY, at: up.timeStamp };
+      }
+    };
+    this.ownerWindow.addEventListener("pointerup", onUp);
+    return false;
+  };
+
+  private removeDoubleTapDots = (clientX: number, clientY: number) => {
+    const startedAt = Date.now();
+    const cleanup = () => {
+      const zoom = this.state.zoom.value;
+      const { x, y } = viewportCoordsToSceneCoords(
+        { clientX, clientY },
+        this.state,
+      );
+      const isDot = (element: ExcalidrawElement) =>
+        element.type === "freedraw" &&
+        !element.isDeleted &&
+        startedAt - element.updated < 1500 &&
+        Math.max(element.width, element.height) * zoom < 16 &&
+        Math.hypot(element.x - x, element.y - y) * zoom < 60;
+      const elements = this.scene.getElementsIncludingDeleted();
+      if (!elements.some(isDot)) {
+        return;
+      }
+      this.updateScene({
+        elements: elements.filter((element) => !isDot(element)),
+        captureUpdate: CaptureUpdateAction.NEVER,
+      });
+    };
+    cleanup();
+    const onUp = () => this.ownerWindow.setTimeout(cleanup);
+    this.ownerWindow.addEventListener("pointerup", onUp, { once: true });
+    this.ownerWindow.setTimeout(() => {
+      this.ownerWindow.removeEventListener("pointerup", onUp);
+      cleanup();
+    }, 600);
   };
 
   private handleCanvasClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
@@ -7548,6 +7707,26 @@ class App extends React.Component<AppProps, AppState> {
           this.pan.start(event);
         }
       }
+      return;
+    }
+    // PROTOTYPE (text flows): with a drawing tool still active while typing,
+    // the tap that dismisses the text only dismisses it (no stray dot)
+    if (
+      this.text.isEditingTextContent() &&
+      getTextFlow() !== "stock" &&
+      // (Shapes may start its next sketch right away; a tap makes nothing)
+      DOUBLE_TAP_TEXT_TOOLS.includes(this.state.activeTool.type) &&
+      !(this.state.penMode && event.pointerType === "touch")
+    ) {
+      return;
+    }
+    // PROTOTYPE (text flows): iPadOS doesn't reliably send touch events for
+    // Pencil taps, so a Pencil double-tap is read off pointer events
+    if (
+      event.pointerType === "pen" &&
+      textFlowHas("doubleTapAnywhere") &&
+      this.maybePenDoubleTap(event)
+    ) {
       return;
     }
     // with the active tool allowed via `interaction.enabled.tools`, the

@@ -6,7 +6,7 @@ import { showSelectedShapeActions } from "@excalidraw/element";
 
 import type { NonDeletedExcalidrawElement } from "@excalidraw/element/types";
 
-import { useAtom } from "../../editor-jotai";
+import { useAtom, useAtomValue } from "../../editor-jotai";
 import { t } from "../../i18n";
 import { SelectedShapeActions } from "../Actions";
 import {
@@ -41,6 +41,8 @@ import {
   TOOLBAR_SIZES,
   toolbarConfigAtom,
 } from "./toolbarConfig";
+
+import { TEXT_FLOWS, textFlowAtom } from "../TextFlows/textFlows";
 
 import "./CustomToolbar.scss";
 
@@ -136,6 +138,24 @@ export const CustomToolbar = (props: Props) => {
   const { app, appState, setAppState, actionManager, elements, UIOptions } =
     props;
   const [config, setConfig] = useAtom(toolbarConfigAtom);
+  // PROTOTYPE (text flows): flows built around the Text button put it on the
+  // toolbar, right after the drawing tools
+  const textFlow = useAtomValue(textFlowAtom);
+  const items = React.useMemo(() => {
+    const wantsText = TEXT_FLOWS.find(
+      (flow) => flow.id === textFlow,
+    )!.features.includes("toolbarText");
+    if (!wantsText || config.items.includes("text")) {
+      return config.items;
+    }
+    const after = Math.max(
+      config.items.indexOf("autoshape"),
+      config.items.indexOf("freedraw"),
+    );
+    const next = [...config.items];
+    next.splice(after + 1, 0, "text");
+    return next;
+  }, [config.items, textFlow]);
   const { container } = useExcalidrawContainer();
   const hasUndoItem = config.items.includes("undo");
   React.useEffect(() => {
@@ -262,7 +282,7 @@ export const CustomToolbar = (props: Props) => {
           padding={1}
           data-testid="ct-toolbar"
         >
-          {config.items.map((id) => (
+          {items.map((id) => (
             <Item
               key={id}
               label={TOOLBAR_ITEM_LABELS[id]}

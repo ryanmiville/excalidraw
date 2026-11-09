@@ -75,6 +75,9 @@ import {
 
 import type { ParsedDataTranferList } from "../clipboard";
 
+import { attachScribblePad } from "../components/TextFlows/scribblePad";
+import { textFlowHas } from "../components/TextFlows/textFlows";
+
 import type App from "../components/App";
 import type { AppState } from "../types";
 
@@ -528,7 +531,11 @@ export const textWysiwyg = ({
 
       app.scene.mutateElement(updatedTextElement, { x: coordX, y: coordY });
     }
+    scribblePad?.update();
   };
+
+  // PROTOTYPE (text flows)
+  let scribblePad: ReturnType<typeof attachScribblePad> | null = null;
 
   const editable = ownerDocument.createElement("textarea");
 
@@ -1110,6 +1117,7 @@ export const textWysiwyg = ({
     unsubOnChange();
     unbindOnScroll();
     editorBox?.removeEventListener("scroll", onEditorBoxScroll);
+    scribblePad?.destroy();
     editorBox?.style.removeProperty("left");
     editorBox?.style.removeProperty("right");
 
@@ -1328,6 +1336,21 @@ export const textWysiwyg = ({
   });
   ownerWindow.addEventListener("beforeunload", handleSubmit);
   editorBox!.appendChild(editable);
+
+  if (textFlowHas("scribblePad") && app.editorInterface.isTouchScreen) {
+    scribblePad = attachScribblePad({
+      app,
+      editable,
+      editorBox,
+      ownerWindow,
+      container: getContainerElement(
+        element,
+        app.scene.getNonDeletedElementsMap(),
+      ),
+      onDone: () => handleSubmit(),
+    });
+    updateWysiwygStyle();
+  }
 
   return handleSubmit;
 };

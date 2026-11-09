@@ -13,13 +13,15 @@ cd "$(dirname "$0")/.."
 )
 rm -rf docs
 cp -r excalidraw-app/build docs
-# the old /tablet/ preview link now lands on the main site
-mkdir -p docs/tablet
-cat > docs/tablet/index.html <<'HTML'
+# old preview links (/tablet/, /text/) now land on the main site
+for preview in tablet text; do
+mkdir -p "docs/$preview"
+cat > "docs/$preview/index.html" <<'HTML'
 <!doctype html>
 <meta charset="utf-8">
 <meta http-equiv="refresh" content="0; url=/excalidraw/">
 <script>location.replace("/excalidraw/" + location.search + location.hash)</script>
 <a href="/excalidraw/">Excalidraw</a>
 HTML
+done
 touch docs/.nojekyll

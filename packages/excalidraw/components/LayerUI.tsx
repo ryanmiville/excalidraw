@@ -64,6 +64,7 @@ import { Toolbar } from "./Toolbar";
 import { CustomToolbar } from "./CustomToolbar/CustomToolbar";
 import { CustomizeToolbarDialog } from "./CustomToolbar/CustomizeToolbarDialog";
 import { toolbarConfigAtom } from "./CustomToolbar/toolbarConfig";
+import { TextLabelChip } from "./TextFlows/TextFlows";
 import {
   ViewportStatusBadge,
   ViewportStatusBorder,
@@ -677,6 +678,7 @@ const LayerUI = ({
                 onLockToggle={onLockToggle}
               />
             )}
+            <TextLabelChip app={app} appState={appState} elements={elements} />
             <Footer
               appState={appState}
               actionManager={actionManager}
