@@ -1,0 +1,800 @@
+@import "../../css/variables.module.scss";
+
+// ---------------------------------------------------------------------------
+// hide the desktop chrome that tablet mode replaces
+// ---------------------------------------------------------------------------
+
+.excalidraw.excalidraw--tablet-ui {
+  .shapes-section,
+  .welcome-screen-decor-hint--toolbar,
+  .layer-ui__wrapper__footer-left .undo-redo-buttons {
+    display: none !important;
+  }
+
+  .selected-shape-actions-container,
+  .App-menu_top__left > .mobile-misc-tools-container,
+  .App-menu_top__left .ToolIcon__penMode {
+    display: none !important;
+  }
+}
+
+.excalidraw .tablet-mode {
+  --tm-ink: var(--icon-fill-color, var(--color-on-surface));
+  --tm-active-bg: var(--color-surface-primary-container);
+  --tm-active-fg: var(--color-on-primary-container);
+  --tm-hover: var(--button-hover-bg);
+  --tm-ease: cubic-bezier(0.2, 0.9, 0.3, 1.2);
+
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: var(--zIndex-layerUI);
+  font-family: var(--ui-font);
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+
+  & > *,
+  .tm-pads,
+  .tm-puck-wrap > * {
+    pointer-events: auto;
+  }
+
+  button {
+    font-family: inherit;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    cursor: pointer;
+  }
+
+  svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  // -------------------------------------------------------------------------
+  // shared controls
+  // -------------------------------------------------------------------------
+
+  .tm-mode-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    border: 0;
+    background: transparent;
+    color: var(--tm-ink);
+    border-radius: 12px;
+    transition: background 0.15s, transform 0.15s var(--tm-ease);
+
+    &--lg {
+      width: 68px;
+      height: 68px;
+    }
+    &--md {
+      width: 56px;
+      height: 56px;
+    }
+
+    &__icon {
+      width: 26px;
+      height: 26px;
+      display: flex;
+    }
+    &__label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      opacity: 0.75;
+    }
+
+    &:active {
+      transform: scale(0.94);
+    }
+
+    &.is-active {
+      background: var(--tm-active-bg);
+      color: var(--tm-active-fg);
+      .tm-mode-btn__label {
+        opacity: 1;
+      }
+    }
+  }
+
+  .tm-sep {
+    height: 1px;
+    margin: 6px 10px;
+    background: var(--default-border-color);
+  }
+  .tm-vsep {
+    width: 1px;
+    align-self: stretch;
+    margin: 6px 4px;
+    background: var(--default-border-color);
+  }
+
+  .tm-undo-redo {
+    display: flex;
+    gap: 2px;
+    align-items: center;
+    justify-content: center;
+
+    &.tm-col {
+      flex-direction: row;
+    }
+
+    .ToolIcon__icon {
+      width: 2.5rem;
+      height: 2.5rem;
+      border-radius: 10px;
+      background: transparent;
+    }
+    .ToolIcon_type_button {
+      background: transparent;
+    }
+  }
+
+  .tm-colors {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+
+    &--grid {
+      display: grid;
+      grid-template-columns: repeat(5, 30px);
+      gap: 8px;
+    }
+  }
+
+  .tm-color {
+    position: relative;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 0;
+    padding: 0;
+    background: var(--tm-swatch);
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08) inset;
+    transition: transform 0.15s var(--tm-ease);
+
+    &:active {
+      transform: scale(0.9);
+    }
+
+    &.is-active {
+      box-shadow: 0 0 0 2px var(--island-bg-color),
+        0 0 0 4px var(--color-primary);
+    }
+
+    &--lg {
+      width: 40px;
+      height: 40px;
+    }
+  }
+
+  .tm-widths {
+    display: flex;
+    gap: 4px;
+  }
+
+  .tm-width {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    border: 0;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    span {
+      border-radius: 50%;
+      display: block;
+    }
+    &.is-active {
+      background: var(--tm-active-bg);
+    }
+  }
+
+  .tm-segmented {
+    display: flex;
+    background: var(--color-surface-low);
+    border-radius: 10px;
+    padding: 3px;
+    gap: 2px;
+
+    button {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      border: 0;
+      background: transparent;
+      color: var(--tm-ink);
+      border-radius: 8px;
+      padding: 0 10px;
+      height: 34px;
+      font-size: 0.8rem;
+      font-weight: 600;
+
+      svg {
+        width: 18px;
+        height: 18px;
+      }
+
+      &.is-active {
+        background: var(--island-bg-color);
+        color: var(--tm-active-fg);
+        box-shadow: var(--shadow-island);
+      }
+    }
+
+    &--col {
+      flex-direction: row;
+      button {
+        flex: 1;
+        justify-content: center;
+      }
+    }
+  }
+
+  .tm-right-styles {
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    max-height: calc(100% - 10rem);
+    overflow: visible;
+  }
+
+  // -------------------------------------------------------------------------
+  // variant switcher (prototype only)
+  // -------------------------------------------------------------------------
+
+  .tm-switcher {
+    position: absolute;
+    bottom: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 4px;
+    font-size: 0.75rem;
+
+    &__name {
+      padding: 0 8px 0 6px;
+      font-weight: 700;
+      color: var(--color-primary);
+    }
+
+    button {
+      border: 0;
+      background: transparent;
+      color: var(--tm-ink);
+      height: 30px;
+      min-width: 30px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.75rem;
+
+      &.is-active {
+        background: var(--tm-active-bg);
+        color: var(--tm-active-fg);
+      }
+    }
+  }
+}
+
+// ===========================================================================
+// A — thumb rail
+// ===========================================================================
+
+.excalidraw .tablet-mode--a {
+  .tm-rail {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 6px;
+    border-radius: 16px;
+  }
+  .tm-undo-redo {
+    flex-direction: column;
+  }
+}
+
+// ===========================================================================
+// B — thumb arc
+// ===========================================================================
+
+.excalidraw .tablet-mode--b {
+  .tm-arc {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+
+    &__svg {
+      position: absolute;
+      inset: 0;
+      overflow: visible;
+      filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.08))
+        drop-shadow(0 4px 10px rgba(0, 0, 0, 0.08));
+
+      path {
+        pointer-events: auto;
+      }
+    }
+
+    &__wedge {
+      fill: var(--island-bg-color);
+      stroke: var(--default-border-color);
+      stroke-width: 1;
+      cursor: pointer;
+      transition: fill 0.15s;
+
+      &.is-active {
+        fill: var(--tm-active-bg);
+      }
+    }
+
+    &__hub {
+      fill: var(--island-bg-color);
+      stroke: var(--default-border-color);
+      cursor: pointer;
+    }
+
+    &__hub-dot {
+      position: absolute;
+      left: 22px;
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+      pointer-events: none;
+      box-shadow: 0 0 0 3px var(--island-bg-color),
+        0 0 0 4px var(--default-border-color);
+      transition: width 0.15s, height 0.15s;
+    }
+
+    &__ring {
+      fill: var(--island-bg-color);
+      opacity: 0;
+      transform-origin: 0 240px;
+      transform: scale(0.85);
+      transition: opacity 0.18s, transform 0.25s var(--tm-ease);
+      pointer-events: none !important;
+    }
+
+    &__label {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      pointer-events: none;
+      color: var(--tm-ink);
+
+      svg {
+        width: 28px;
+        height: 28px;
+      }
+      span {
+        font-size: 0.7rem;
+        font-weight: 600;
+        opacity: 0.75;
+      }
+
+      &.is-active {
+        color: var(--tm-active-fg);
+        span {
+          opacity: 1;
+        }
+      }
+    }
+
+    &__swatch {
+      position: absolute;
+      width: 34px;
+      height: 34px;
+      margin: -17px 0 0 -17px;
+      border-radius: 50%;
+      border: 0;
+      padding: 0;
+      pointer-events: none;
+      opacity: 0;
+      transform: scale(0.4) translateX(-60px);
+      transition: opacity 0.15s, transform 0.28s var(--tm-ease);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      &--color {
+        background: var(--tm-swatch);
+        box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08) inset;
+      }
+      &--width {
+        background: var(--color-surface-low);
+        span {
+          border-radius: 50%;
+          background: var(--tm-swatch);
+        }
+      }
+      &.is-active {
+        box-shadow: 0 0 0 2px var(--island-bg-color),
+          0 0 0 4px var(--color-primary);
+      }
+    }
+
+    &__undo {
+      position: absolute;
+      left: 4px;
+      bottom: -12px;
+      pointer-events: auto;
+      background: var(--island-bg-color);
+      border-radius: 12px;
+      box-shadow: var(--shadow-island);
+      padding: 2px;
+    }
+
+    &.is-open {
+      .tm-arc__ring {
+        opacity: 1;
+        transform: scale(1);
+      }
+      .tm-arc__swatch {
+        pointer-events: auto;
+        opacity: 1;
+        transform: none;
+      }
+    }
+  }
+}
+
+// ===========================================================================
+// C — hold to switch
+// ===========================================================================
+
+.excalidraw .tablet-mode--c {
+  .tm-pads {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+
+    > * {
+      pointer-events: auto;
+    }
+  }
+
+  .tm-pad {
+    width: 84px;
+    height: 150px;
+    border: 0;
+    border-radius: 0 22px 22px 0;
+    background: var(--island-bg-color);
+    box-shadow: var(--shadow-island);
+    color: var(--tm-ink);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    touch-action: none;
+    transition: width 0.2s var(--tm-ease), background 0.15s, color 0.15s;
+
+    &__icon {
+      width: 30px;
+      height: 30px;
+      display: flex;
+    }
+    &__label {
+      font-weight: 700;
+      font-size: 0.8rem;
+    }
+    &__hint {
+      font-size: 0.65rem;
+      opacity: 0.55;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    &.is-active {
+      background: var(--tm-active-bg);
+      color: var(--tm-active-fg);
+    }
+    &.is-held {
+      width: 96px;
+      background: var(--color-primary);
+      color: #fff;
+    }
+    &.is-latched {
+      box-shadow: var(--shadow-island), inset -4px 0 0 var(--color-primary);
+    }
+  }
+
+  .tm-home {
+    width: 64px;
+    height: 64px;
+    border: 0;
+    border-radius: 0 16px 16px 0;
+    background: var(--island-bg-color);
+    box-shadow: var(--shadow-island);
+    color: var(--tm-ink);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    font-size: 0.65rem;
+    font-weight: 600;
+
+    svg {
+      width: 22px;
+      height: 22px;
+    }
+    &.is-active {
+      background: var(--tm-active-bg);
+      color: var(--tm-active-fg);
+    }
+  }
+
+  .tm-strip {
+    position: absolute;
+    top: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    border-radius: 14px;
+  }
+}
+
+// ===========================================================================
+// D — mode drawer
+// ===========================================================================
+
+.excalidraw .tablet-mode--d {
+  .tm-drawer {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: stretch;
+    border-radius: 0 18px 18px 0;
+
+    &__rail {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding: 8px 6px 8px 8px;
+    }
+
+    .tm-undo-redo {
+      flex-direction: column;
+    }
+
+    &__panel {
+      width: 232px;
+      overflow: hidden;
+      transition: width 0.28s var(--tm-ease), opacity 0.2s;
+      border-left: 1px solid var(--default-border-color);
+    }
+    &__panel-inner {
+      width: 232px;
+      box-sizing: border-box;
+      padding: 12px 14px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    &__title {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      opacity: 0.55;
+      margin-top: 4px;
+    }
+
+    &__hint {
+      font-size: 0.8rem;
+      line-height: 1.35;
+      opacity: 0.7;
+    }
+
+    &__compact .compact-shape-actions {
+      flex-direction: row;
+      flex-wrap: wrap;
+    }
+
+    &__handle {
+      position: absolute;
+      right: -14px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 14px;
+      height: 56px;
+      border: 0;
+      border-radius: 0 8px 8px 0;
+      background: var(--island-bg-color);
+      box-shadow: var(--shadow-island);
+      clip-path: inset(-10px -10px -10px 0);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+
+      span {
+        width: 3px;
+        height: 22px;
+        border-radius: 2px;
+        background: var(--color-gray-40, #b8b8b8);
+      }
+    }
+
+    &.is-collapsed .tm-drawer__panel {
+      width: 0;
+      opacity: 0;
+      border-left-color: transparent;
+    }
+  }
+}
+
+// ===========================================================================
+// E — swipe puck
+// ===========================================================================
+
+.excalidraw .tablet-mode--e {
+  .tm-puck-wrap {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 104px;
+    height: 340px;
+    pointer-events: none;
+  }
+
+  .tm-puck-track {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+
+    > * {
+      pointer-events: auto;
+    }
+  }
+
+  .tm-puck-ghost {
+    position: absolute;
+    left: 30px;
+    width: 44px;
+    height: 44px;
+    margin-top: -22px;
+    border-radius: 50%;
+    border: 0;
+    background: var(--island-bg-color);
+    box-shadow: var(--shadow-island);
+    color: var(--tm-ink);
+    padding: 11px;
+    opacity: 0.85;
+    transition: top 0.3s var(--tm-ease), opacity 0.2s;
+
+    &.is-active {
+      opacity: 0;
+      pointer-events: none;
+    }
+  }
+
+  .tm-puck {
+    position: absolute;
+    left: 6px;
+    top: 50%;
+    width: 92px;
+    height: 92px;
+    border-radius: 50%;
+    border: 0;
+    background: var(--tm-active-bg);
+    color: var(--tm-active-fg);
+    box-shadow: var(--shadow-island-stronger, var(--shadow-island)),
+      inset 0 0 0 5px var(--island-bg-color), inset 0 0 0 9px var(--tm-swatch);
+    touch-action: none;
+    transition: transform 0.25s var(--tm-ease), background 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &__icon {
+      width: 36px;
+      height: 36px;
+      display: flex;
+    }
+
+    &--erase {
+      background: #ffe3e3;
+      color: #c92a2a;
+    }
+  }
+
+  .tm-puck-flash {
+    position: absolute;
+    left: 112px;
+    top: 50%;
+    transform: translate(-8px, -50%);
+    padding: 6px 12px;
+    border-radius: 10px;
+    background: var(--color-primary);
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 700;
+    opacity: 0;
+    transition: opacity 0.15s, transform 0.25s var(--tm-ease);
+    pointer-events: none !important;
+
+    &.is-visible {
+      opacity: 1;
+      transform: translate(0, -50%);
+    }
+  }
+
+  .tm-puck-fan {
+    position: absolute;
+    left: 52px;
+    top: 50%;
+    width: 0;
+    height: 0;
+    z-index: 2;
+
+    .tm-color {
+      position: absolute;
+      margin: -20px 0 0 -20px;
+      animation: tm-pop 0.3s var(--tm-ease) both;
+      box-shadow: var(--shadow-island), 0 0 0 1px rgba(0, 0, 0, 0.08) inset;
+
+      &.is-active {
+        box-shadow: 0 0 0 3px var(--island-bg-color),
+          0 0 0 5px var(--color-primary);
+      }
+    }
+  }
+
+  .tm-puck-scrim {
+    position: fixed;
+    inset: -100vh -100vw;
+    z-index: 1;
+  }
+
+  .tm-puck-undo {
+    position: absolute;
+    left: 10px;
+    bottom: -60px;
+    background: var(--island-bg-color);
+    border-radius: 12px;
+    box-shadow: var(--shadow-island);
+    padding: 2px;
+  }
+}
+
+@keyframes tm-pop {
+  from {
+    opacity: 0;
+    transform: translate(-40px, 0) scale(0.3);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}

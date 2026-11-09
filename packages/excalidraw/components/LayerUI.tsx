@@ -61,6 +61,7 @@ import { JSONExportDialog } from "./JSONExportDialog";
 import { LaserPointerButton } from "./LaserPointerButton";
 import { Toast } from "./Toast";
 import { Toolbar } from "./Toolbar";
+import { TabletMode, getTabletVariant } from "./TabletMode/TabletMode";
 import {
   ViewportStatusBadge,
   ViewportStatusBorder,
@@ -461,6 +462,7 @@ const LayerUI = ({
   };
 
   const isSidebarDocked = useAtomValue(isSidebarDockedAtom);
+  const [tabletVariant] = React.useState(getTabletVariant);
   const isSidebarDockedAndFits = !!(
     appState.openSidebar &&
     isSidebarDocked &&
@@ -654,6 +656,16 @@ const LayerUI = ({
           >
             {renderWelcomeScreen && <tunnels.WelcomeScreenCenterTunnel.Out />}
             {renderFixedSideContainer()}
+            {tabletVariant && defaultUIEnabled && !appState.viewModeEnabled && (
+              <TabletMode
+                variant={tabletVariant}
+                app={app}
+                appState={appState}
+                setAppState={setAppState}
+                actionManager={actionManager}
+                elements={elements}
+              />
+            )}
             <Footer
               appState={appState}
               actionManager={actionManager}
