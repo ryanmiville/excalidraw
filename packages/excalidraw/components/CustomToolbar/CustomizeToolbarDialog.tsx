@@ -14,7 +14,6 @@ import {
 } from "./toolbarConfig";
 
 import type {
-  StylesPlacement,
   ToolbarItemId,
   ToolbarPosition,
   ToolbarSize,
@@ -144,29 +143,7 @@ export const CustomizeToolbarDialog = () => {
         </div>
 
         <div className="ct-dialog__section">
-          <div className="ct-dialog__label">Style options</div>
-          <Segmented<StylesPlacement>
-            testId="ct-styles-placement"
-            value={config.styles}
-            onChange={(styles) => setConfig({ styles, stylesHidden: false })}
-            options={[
-              { value: "beside", label: "Beside toolbar" },
-              { value: "button", label: "Styles button" },
-              { value: "inline", label: "On the toolbar" },
-              { value: "strip", label: "Top strip" },
-            ]}
-          />
-          <div className="ct-dialog__label">Panel</div>
-          <Segmented<"full" | "compact">
-            testId="ct-panel"
-            value={config.panel}
-            onChange={(panel) => setConfig({ panel })}
-            options={[
-              { value: "full", label: "Full options" },
-              { value: "compact", label: "Compact" },
-            ]}
-          />
-          <div className="ct-dialog__label">Panel side</div>
+          <div className="ct-dialog__label">Options panel</div>
           <Segmented<"left" | "right">
             testId="ct-side"
             value={config.panelSide}

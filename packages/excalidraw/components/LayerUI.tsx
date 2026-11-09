@@ -61,7 +61,6 @@ import { JSONExportDialog } from "./JSONExportDialog";
 import { LaserPointerButton } from "./LaserPointerButton";
 import { Toast } from "./Toast";
 import { Toolbar } from "./Toolbar";
-import { TabletMode, getTabletVariant } from "./TabletMode/TabletMode";
 import { CustomToolbar } from "./CustomToolbar/CustomToolbar";
 import { CustomizeToolbarDialog } from "./CustomToolbar/CustomizeToolbarDialog";
 import { toolbarConfigAtom } from "./CustomToolbar/toolbarConfig";
@@ -178,10 +177,8 @@ const LayerUI = ({
   const stylesPanelMode = useStylesPanelMode();
   const isCompactStylesPanel = stylesPanelMode === "compact";
   const toolbarConfig = useAtomValue(toolbarConfigAtom);
-  const [tabletVariant] = React.useState(getTabletVariant);
   const customToolbarOn =
     toolbarConfig.enabled &&
-    !tabletVariant &&
     editorInterface.formFactor !== "phone" &&
     !appState.viewModeEnabled;
   const tunnels = useInitializeTunnels();
@@ -678,16 +675,6 @@ const LayerUI = ({
                 elements={elements}
                 UIOptions={UIOptions}
                 onLockToggle={onLockToggle}
-              />
-            )}
-            {tabletVariant && defaultUIEnabled && !appState.viewModeEnabled && (
-              <TabletMode
-                variant={tabletVariant}
-                app={app}
-                appState={appState}
-                setAppState={setAppState}
-                actionManager={actionManager}
-                elements={elements}
               />
             )}
             <Footer

@@ -1,20 +1,14 @@
 import clsx from "clsx";
-import { Popover } from "radix-ui";
 import React from "react";
 
-import {
-  CLASSES,
-  COLOR_PALETTE,
-  DEFAULT_ELEMENT_STROKE_COLOR_INDEX,
-} from "@excalidraw/common";
+import { CLASSES } from "@excalidraw/common";
 import { showSelectedShapeActions } from "@excalidraw/element";
 
-import type { StrokeWidthKey } from "@excalidraw/common";
 import type { NonDeletedExcalidrawElement } from "@excalidraw/element/types";
 
 import { useAtom } from "../../editor-jotai";
 import { t } from "../../i18n";
-import { CompactShapeActions, SelectedShapeActions } from "../Actions";
+import { SelectedShapeActions } from "../Actions";
 import {
   EditorInterfaceContext,
   useEditorInterface,
@@ -41,7 +35,6 @@ import {
   StickyNoteToolButton,
   TextToolButton,
 } from "../Tools";
-import { palette } from "../icons";
 
 import {
   TOOLBAR_ITEM_LABELS,
@@ -60,20 +53,6 @@ import type {
   UIAppState,
 } from "../../types";
 
-const QUICK_COLORS = [
-  COLOR_PALETTE.black,
-  COLOR_PALETTE.red[DEFAULT_ELEMENT_STROKE_COLOR_INDEX],
-  COLOR_PALETTE.blue[DEFAULT_ELEMENT_STROKE_COLOR_INDEX],
-  COLOR_PALETTE.green[DEFAULT_ELEMENT_STROKE_COLOR_INDEX],
-  COLOR_PALETTE.orange[DEFAULT_ELEMENT_STROKE_COLOR_INDEX],
-];
-const WIDTHS: StrokeWidthKey[] = ["thin", "medium", "bold"];
-const WIDTH_DOT: Record<StrokeWidthKey, number> = {
-  thin: 4,
-  medium: 8,
-  bold: 13,
-};
-
 type Props = {
   app: AppClassProperties;
   appState: UIAppState;
@@ -86,26 +65,6 @@ type Props = {
 
 const isVertical = (config: ToolbarConfig) =>
   config.position === "left" || config.position === "right";
-
-const popoverSide = (config: ToolbarConfig) =>
-  ({
-    left: "right",
-    right: "left",
-    top: "bottom",
-    bottom: "top",
-  }[config.position] as "right" | "left" | "bottom" | "top");
-
-/** compact styles panel, regardless of screen size */
-const ForceCompact = ({ children }: { children: React.ReactNode }) => {
-  const editorInterface = useEditorInterface();
-  return (
-    <EditorInterfaceContext.Provider
-      value={{ ...editorInterface, formFactor: "tablet" }}
-    >
-      {children}
-    </EditorInterfaceContext.Provider>
-  );
-};
 
 /** the stock full options panel, regardless of screen size */
 const ForceFull = ({ children }: { children: React.ReactNode }) => {
@@ -123,108 +82,38 @@ const ForceFull = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-const StylesPanel = ({
+/** the full options panel, with a tab to tuck it away */
+const OptionsPanel = ({
   app,
   appState,
   actionManager,
-  setAppState,
-  horizontal,
-  full,
   onHide,
-}: Props & { horizontal?: boolean; full?: boolean; onHide?: () => void }) => (
-  <div
-    className={clsx("ct-styles", {
-      "ct-styles--horizontal": horizontal && !full,
-      "ct-styles--full": full,
-    })}
-    data-testid="ct-styles"
-  >
-    {full ? (
-      <Island
-        className={clsx(CLASSES.SHAPE_ACTIONS_MENU, "ct-styles__island")}
-        padding={2}
-      >
-        <ForceFull>
-          <SelectedShapeActions
-            appState={appState}
-            elementsMap={app.scene.getNonDeletedElementsMap()}
-            renderAction={actionManager.renderAction}
-            app={app}
-          />
-        </ForceFull>
-      </Island>
-    ) : (
-      <Island className="ct-styles__island" padding={0}>
-        <ForceCompact>
-          <CompactShapeActions
-            appState={appState}
-            elementsMap={app.scene.getNonDeletedElementsMap()}
-            renderAction={actionManager.renderAction}
-            app={app}
-            setAppState={setAppState}
-          />
-        </ForceCompact>
-      </Island>
-    )}
-    {onHide && (
-      <button
-        type="button"
-        className="ct-styles__hide"
-        onClick={onHide}
-        title="Hide style options"
-        data-testid="ct-styles-hide"
-      >
-        <span />
-      </button>
-    )}
+}: Props & { onHide: () => void }) => (
+  <div className="ct-styles" data-testid="ct-styles">
+    <Island
+      className={clsx(CLASSES.SHAPE_ACTIONS_MENU, "ct-styles__island")}
+      padding={2}
+    >
+      <ForceFull>
+        <SelectedShapeActions
+          appState={appState}
+          elementsMap={app.scene.getNonDeletedElementsMap()}
+          renderAction={actionManager.renderAction}
+          app={app}
+        />
+      </ForceFull>
+    </Island>
+    <button
+      type="button"
+      className="ct-styles__hide"
+      onClick={onHide}
+      title="Hide options"
+      data-testid="ct-styles-hide"
+    >
+      <span />
+    </button>
   </div>
 );
-
-const setColor = (actionManager: ActionManager, color: string) =>
-  actionManager.executeAction(actionManager.actions.changeStrokeColor, "ui", {
-    color,
-    currentItemStrokeColor: color,
-  });
-
-const setWidth = (actionManager: ActionManager, width: StrokeWidthKey) =>
-  actionManager.executeAction(
-    actionManager.actions.changeStrokeWidth,
-    "ui",
-    width,
-  );
-
-const QuickPopover = ({
-  trigger,
-  children,
-  side,
-  testId,
-}: {
-  trigger: React.ReactNode;
-  children: React.ReactNode;
-  side: "left" | "right" | "top" | "bottom";
-  testId: string;
-}) => {
-  const { container } = useExcalidrawContainer();
-  return (
-    <Popover.Root>
-      <Popover.Trigger asChild>
-        <button type="button" className="ct-quick" data-testid={testId}>
-          {trigger}
-        </button>
-      </Popover.Trigger>
-      <Popover.Portal container={container}>
-        <Popover.Content
-          side={side}
-          sideOffset={14}
-          className="ct-quick-popover"
-          collisionBoundary={container ?? undefined}
-        >
-          {children}
-        </Popover.Content>
-      </Popover.Portal>
-    </Popover.Root>
-  );
-};
 
 const Item = ({
   label,
@@ -247,7 +136,6 @@ export const CustomToolbar = (props: Props) => {
   const { app, appState, setAppState, actionManager, elements, UIOptions } =
     props;
   const [config, setConfig] = useAtom(toolbarConfigAtom);
-  const [stylesOpen, setStylesOpen] = React.useState(false);
   const { container } = useExcalidrawContainer();
   const hasUndoItem = config.items.includes("undo");
   React.useEffect(() => {
@@ -264,7 +152,6 @@ export const CustomToolbar = (props: Props) => {
     hideKeyBinding: true,
   };
   const vertical = isVertical(config);
-  const side = popoverSide(config);
   const relevant = showSelectedShapeActions(appState, elements);
 
   const renderItem = (id: ToolbarItemId) => {
@@ -326,157 +213,29 @@ export const CustomToolbar = (props: Props) => {
     return null;
   };
 
-  // --- style controls that live on the toolbar ------------------------------
-
-  const stylesButton = (
-    <Item label="Styles" show={config.labels}>
+  // the options panel hugs the chosen screen edge; on the toolbar's own
+  // edge it docks right beside the toolbar
+  const panelEdge = config.panelSide;
+  const docked = panelEdge === config.position;
+  let panel: React.ReactNode = null;
+  if (relevant) {
+    panel = config.stylesHidden ? (
       <button
         type="button"
-        className={clsx("ct-quick", { "is-active": stylesOpen })}
-        onClick={() => setStylesOpen((o) => !o)}
-        data-testid="ct-styles-button"
-        title="Style options"
+        className="ct-peek"
+        onClick={() => setConfig({ stylesHidden: false })}
+        title="Show options"
+        data-testid="ct-styles-show"
       >
-        <span
-          className="ct-quick__palette"
-          style={{ color: appState.currentItemStrokeColor }}
-        >
-          {palette}
-        </span>
+        <span style={{ background: appState.currentItemStrokeColor }} />
       </button>
-    </Item>
-  );
-
-  const inlineControls = (
-    <>
-      <Item label="Color" show={config.labels}>
-        <QuickPopover
-          side={side}
-          testId="ct-color"
-          trigger={
-            <span
-              className="ct-quick__swatch"
-              style={{ background: appState.currentItemStrokeColor }}
-            />
-          }
-        >
-          <div className="ct-quick-row">
-            {QUICK_COLORS.map((c) => (
-              <Popover.Close asChild key={c}>
-                <button
-                  type="button"
-                  className={clsx("ct-color", {
-                    "is-active": appState.currentItemStrokeColor === c,
-                  })}
-                  style={{ background: c }}
-                  onClick={() => setColor(actionManager, c)}
-                  aria-label={c}
-                />
-              </Popover.Close>
-            ))}
-          </div>
-        </QuickPopover>
-      </Item>
-      <Item label="Stroke" show={config.labels}>
-        <QuickPopover
-          side={side}
-          testId="ct-width"
-          trigger={
-            <span
-              className="ct-quick__dot"
-              style={{
-                width: WIDTH_DOT[appState.currentItemStrokeWidthKey] + 2,
-                height: WIDTH_DOT[appState.currentItemStrokeWidthKey] + 2,
-                background: appState.currentItemStrokeColor,
-              }}
-            />
-          }
-        >
-          <div className="ct-quick-row">
-            {WIDTHS.map((w) => (
-              <Popover.Close asChild key={w}>
-                <button
-                  type="button"
-                  className={clsx("ct-width", {
-                    "is-active": appState.currentItemStrokeWidthKey === w,
-                  })}
-                  onClick={() => setWidth(actionManager, w)}
-                  aria-label={w}
-                >
-                  <span
-                    style={{
-                      width: WIDTH_DOT[w],
-                      height: WIDTH_DOT[w],
-                      background: appState.currentItemStrokeColor,
-                    }}
-                  />
-                </button>
-              </Popover.Close>
-            ))}
-          </div>
-        </QuickPopover>
-      </Item>
-      {stylesButton}
-    </>
-  );
-
-  // --- where the full style options go ---------------------------------------
-
-  const full = config.panel === "full";
-  const panelEdge = config.panelSide;
-  // docked right beside the toolbar, or on its own screen edge
-  const opposite = panelEdge !== config.position;
-  const panelVertical = true;
-  let besidePanel: React.ReactNode = null;
-  let peek: React.ReactNode = null;
-
-  if (config.styles === "beside" && relevant) {
-    if (config.stylesHidden) {
-      peek = (
-        <button
-          type="button"
-          className="ct-peek"
-          onClick={() => setConfig({ stylesHidden: false })}
-          title="Show style options"
-          data-testid="ct-styles-show"
-        >
-          <span style={{ background: appState.currentItemStrokeColor }} />
-        </button>
-      );
-    } else {
-      besidePanel = (
-        <StylesPanel
-          {...props}
-          horizontal={!panelVertical}
-          full={full}
-          onHide={() => setConfig({ stylesHidden: true })}
-        />
-      );
-    }
-  } else if (
-    (config.styles === "button" || config.styles === "inline") &&
-    stylesOpen
-  ) {
-    besidePanel = relevant ? (
-      <StylesPanel
-        {...props}
-        horizontal={!panelVertical}
-        full={full}
-        onHide={() => setStylesOpen(false)}
-      />
     ) : (
-      <Island className="ct-styles ct-styles--empty" padding={2}>
-        Pick a drawing tool or select something to change its style.
-      </Island>
+      <OptionsPanel
+        {...props}
+        onHide={() => setConfig({ stylesHidden: true })}
+      />
     );
   }
-
-  const strip =
-    config.styles === "strip" && relevant ? (
-      <div className="ct-strip">
-        <StylesPanel {...props} horizontal full={false} />
-      </div>
-    ) : null;
 
   const size = TOOLBAR_SIZES[config.size];
 
@@ -487,7 +246,6 @@ export const CustomToolbar = (props: Props) => {
           "ct-dock",
           `ct-dock--${config.position}`,
           `ct-edge--${config.position}`,
-          `ct-dock--size-${config.size}`,
           { "ct-dock--labels": config.labels },
         )}
         style={
@@ -514,16 +272,10 @@ export const CustomToolbar = (props: Props) => {
               {renderItem(id)}
             </Item>
           ))}
-          {(config.styles === "button" || config.styles === "inline") && (
-            <div className="ct-divider" />
-          )}
-          {config.styles === "button" && stylesButton}
-          {config.styles === "inline" && inlineControls}
         </Island>
-        {!opposite && peek}
-        {!opposite && besidePanel}
+        {docked && panel}
       </div>
-      {opposite && (peek || besidePanel) && (
+      {!docked && panel && (
         <div
           className={clsx(
             "ct-side",
@@ -531,11 +283,9 @@ export const CustomToolbar = (props: Props) => {
             `ct-edge--${panelEdge}`,
           )}
         >
-          {peek}
-          {besidePanel}
+          {panel}
         </div>
       )}
-      {strip}
     </>
   );
 };

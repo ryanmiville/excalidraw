@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Builds the tablet-toolbar prototypes and copies them into a checkout of the
+# Builds the customizable-toolbar app and copies it into a checkout of the
 # Pages branch (claude/project-thread-eezqdh), served at
-# https://ryanmiville.github.io/excalidraw/tablet/?tablet=a
+# https://ryanmiville.github.io/excalidraw/tablet/
 # usage: scripts/build-tablet-preview.sh <path-to-pages-branch-checkout>
 set -euo pipefail
 PAGES="${1:?path to pages branch checkout}"

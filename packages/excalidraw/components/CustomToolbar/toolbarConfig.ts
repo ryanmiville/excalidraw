@@ -3,16 +3,6 @@ import { atom } from "../../editor-jotai";
 export type ToolbarPosition = "top" | "left" | "right" | "bottom";
 export type ToolbarSize = "s" | "m" | "l" | "xl";
 
-/**
- * Where the style options (stroke, color, …) go when the toolbar is
- * customized:
- * - beside: docked next to the toolbar, shown when relevant, can be hidden
- * - button: hidden until you tap the Styles button on the toolbar
- * - inline: quick color + stroke buttons live on the toolbar itself
- * - strip:  a horizontal strip across the top of the screen
- */
-export type StylesPlacement = "beside" | "button" | "inline" | "strip";
-
 export type ToolbarItemId =
   | "lock"
   | "hand"
@@ -88,11 +78,8 @@ export type ToolbarConfig = {
   size: ToolbarSize;
   labels: boolean;
   items: ToolbarItemId[];
-  styles: StylesPlacement;
   /** user tucked the docked style options away */
   stylesHidden: boolean;
-  /** the stock full options panel, or the compact (tablet) one */
-  panel: "full" | "compact";
   /**
    * which screen edge the options panel hugs; when it matches the toolbar's
    * edge, the panel docks right beside the toolbar
@@ -155,9 +142,7 @@ export const DEFAULT_TOOLBAR_CONFIG: ToolbarConfig = {
   size: "l",
   labels: true,
   items: TOOLBAR_PRESETS[1].items,
-  styles: "beside",
   stylesHidden: false,
-  panel: "full",
   panelSide: "right",
 };
 
@@ -179,6 +164,10 @@ const loadConfig = (): ToolbarConfig => {
             ? "right"
             : "left";
       }
+      // settings from the exploration rounds that no longer exist
+      delete parsed.styles;
+      delete parsed.panel;
+      delete parsed.stylesSide;
       return {
         ...DEFAULT_TOOLBAR_CONFIG,
         ...parsed,
@@ -191,45 +180,7 @@ const loadConfig = (): ToolbarConfig => {
   return DEFAULT_TOOLBAR_CONFIG;
 };
 
-/**
- * `?toolbar=left|right|top|bottom` turns the custom toolbar on (handy for
- * sharing a setup), `&styles=beside|button|inline|strip` picks where the
- * style options go. Saved like any other change.
- */
-const applyUrlOverrides = (config: ToolbarConfig): ToolbarConfig => {
-  try {
-    const params = new URLSearchParams(window.location.search);
-    const position = params.get("toolbar");
-    const styles = params.get("styles");
-    const panel = params.get("panel");
-    const side = params.get("side");
-    if (panel === "full" || panel === "compact") {
-      config = { ...config, panel };
-    }
-    if (side === "left" || side === "right") {
-      config = { ...config, panelSide: side };
-    }
-    const next = { ...config };
-    if (position && ["left", "right", "top", "bottom"].includes(position)) {
-      next.enabled = true;
-      next.position = position as ToolbarPosition;
-    }
-    if (styles && ["beside", "button", "inline", "strip"].includes(styles)) {
-      next.styles = styles as StylesPlacement;
-      next.stylesHidden = false;
-    }
-    if (next !== config) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-    }
-    return next;
-  } catch {
-    return config;
-  }
-};
-
-const baseToolbarConfigAtom = atom<ToolbarConfig>(
-  applyUrlOverrides(loadConfig()),
-);
+const baseToolbarConfigAtom = atom<ToolbarConfig>(loadConfig());
 
 export const toolbarConfigAtom = atom(
   (get) => get(baseToolbarConfigAtom),
