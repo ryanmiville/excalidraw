@@ -52,6 +52,9 @@ import {
   isUsingAdaptiveRadius,
 } from "./typeChecks";
 import { LinearElementEditor } from "./linearElementEditor";
+import { recognizeShaft } from "./shaftRecognition";
+
+import type { ShaftRecognition } from "./shaftRecognition";
 
 declare global {
   interface Window {
@@ -565,6 +568,16 @@ export const convertToShape = (
         }
       : null;
 
+  if (recognizedShape.type === "freedraw") {
+    const maxDim = Math.max(maxX - minX, maxY - minY);
+    const shaft =
+      points.length >= 3 &&
+      maxDim * appState.zoom.value >= RECOGNITION_MIN_SCREEN_SIZE
+        ? recognizeShaft(points)
+        : null;
+    return shaft ? createShaftElement(shaft, appState, frameId) : undefined;
+  }
+
   switch (recognizedShape.type) {
     case "rectangle":
     case "diamond":
@@ -725,6 +738,83 @@ export const convertToShape = (
   }
 
   return undefined;
+};
+
+// A curved or elbow stroke (see shaftRecognition). Elbows are always arrows;
+// a curve is an arrow when its head was drawn, else a curved line (which the
+// drawShape flow upgrades to an arrow when it connects shapes, like a
+// straight line).
+const createShaftElement = (
+  shaft: ShaftRecognition,
+  appState: AppState,
+  frameId: string | null,
+): NonDeletedRecognizedShapeElement => {
+  const [originX, originY] = shaft.points[0];
+  const common = {
+    x: originX,
+    y: originY,
+    points: shaft.points.map(([x, y]) =>
+      pointFrom<LocalPoint>(x - originX, y - originY),
+    ),
+    groupIds: [],
+    frameId,
+    locked: false,
+    angle: 0 as Radians,
+    roughness: appState.currentItemRoughness,
+    backgroundColor: appState.currentItemBackgroundColor,
+    strokeColor: appState.currentItemStrokeColor,
+    fillStyle: appState.currentItemFillStyle,
+    opacity: appState.currentItemOpacity,
+    strokeStyle: appState.currentItemStrokeStyle,
+  };
+
+  if (shaft.kind === "elbow") {
+    return newArrowElement({
+      ...common,
+      type: "arrow",
+      elbowed: true,
+      roundness: null,
+      startArrowhead: shaft.hasHead ? appState.currentItemStartArrowhead : null,
+      endArrowhead: appState.currentItemEndArrowhead,
+      strokeWidth: getStrokeWidthByKey(
+        "arrow",
+        appState.currentItemStrokeWidthKey,
+      ),
+    });
+  }
+
+  const roundness = { type: ROUNDNESS.PROPORTIONAL_RADIUS };
+  if (shaft.hasHead) {
+    const tempElement = newArrowElement({
+      ...common,
+      type: "arrow",
+      roundness,
+      startArrowhead: appState.currentItemStartArrowhead,
+      endArrowhead: appState.currentItemEndArrowhead,
+      strokeWidth: getStrokeWidthByKey(
+        "arrow",
+        appState.currentItemStrokeWidthKey,
+      ),
+    });
+    return newArrowElement({
+      ...tempElement,
+      ...LinearElementEditor.getNormalizeElementPointsAndCoords(tempElement),
+    });
+  }
+
+  const tempElement = newLinearElement({
+    ...common,
+    type: "line",
+    roundness,
+    strokeWidth: getStrokeWidthByKey(
+      "line",
+      appState.currentItemStrokeWidthKey,
+    ),
+  });
+  return newLinearElement({
+    ...tempElement,
+    ...LinearElementEditor.getNormalizeElementPointsAndCoords(tempElement),
+  }) as NonDeletedRecognizedShapeElement;
 };
 
 // Whether two drawShape preview elements are visually identical, so a redundant

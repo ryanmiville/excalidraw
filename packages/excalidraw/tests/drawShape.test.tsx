@@ -1,6 +1,10 @@
 import * as common from "@excalidraw/common";
 
-import { getTargetElements, isArrowElement } from "@excalidraw/element";
+import {
+  getTargetElements,
+  isArrowElement,
+  isElbowArrow,
+} from "@excalidraw/element";
 
 import type { ExcalidrawTextElement } from "@excalidraw/element/types";
 
@@ -855,4 +859,149 @@ describe("autoshape compact toolbar placement", () => {
       ).not.toBeNull();
     },
   );
+});
+
+describe("autoshape curved & elbow arrows", () => {
+  const sketchWithPreview = (points: [number, number][]) => {
+    const [startX, startY] = points[0];
+    mouse.downAt(startX, startY);
+    act(() => {
+      for (const [x, y] of points.slice(1)) {
+        h.app.drawShape.trail.addPointToPath(x, y);
+        h.app.drawShape.handlePointerMove({ x, y });
+      }
+    });
+    const [endX, endY] = points[points.length - 1];
+    mouse.upAt(endX, endY);
+  };
+
+  /** an arc of radius r around (cx, cy) from angle `from` to `to` */
+  const arcPath = (
+    cx: number,
+    cy: number,
+    r: number,
+    from: number,
+    to: number,
+  ): [number, number][] => {
+    const points: [number, number][] = [];
+    for (let i = 0; i <= 30; i++) {
+      const a = from + ((to - from) * i) / 30;
+      points.push([cx + Math.cos(a) * r, cy + Math.sin(a) * r]);
+    }
+    return points;
+  };
+
+  /** a V head at the end of `path`, drawn tip → arm → tip → other arm */
+  const withHead = (path: [number, number][], size = 30) => {
+    const tip = path[path.length - 1];
+    const before = path[path.length - 3];
+    const length = Math.hypot(tip[0] - before[0], tip[1] - before[1]);
+    const ux = (tip[0] - before[0]) / length;
+    const uy = (tip[1] - before[1]) / length;
+    const arm = (sign: number): [number, number] => [
+      tip[0] - size * (ux * 0.87 - sign * uy * 0.5),
+      tip[1] - size * (uy * 0.87 + sign * ux * 0.5),
+    ];
+    return [
+      ...path,
+      ...seg(tip, arm(1), 5).slice(1),
+      ...seg(arm(1), tip, 5).slice(1),
+      ...seg(tip, arm(-1), 5).slice(1),
+    ];
+  };
+
+  const arc = () => arcPath(250, 300, 150, Math.PI, Math.PI * 1.75);
+  const elbow = (): [number, number][] => [
+    ...seg([100, 100], [400, 102], 20),
+    ...seg([400, 102], [402, 350], 20).slice(1),
+  ];
+
+  beforeEach(async () => {
+    localStorage.clear();
+    await render(<Excalidraw handleKeyboardGlobally={true} />);
+    act(() => {
+      h.app.setActiveTool({ type: "autoshape" });
+    });
+  });
+
+  for (const [name, draw] of [
+    ["", sketch],
+    [" (live preview)", sketchWithPreview],
+  ] as const) {
+    it(`converts a curve with a head into a curved arrow${name}`, () => {
+      draw(withHead(arc()));
+
+      expect(h.elements).toHaveLength(1);
+      const arrow = h.elements[0];
+      expect(isArrowElement(arrow) && !isElbowArrow(arrow)).toBe(true);
+      expect(arrow.roundness).not.toBeNull();
+      expect(isArrowElement(arrow) && arrow.points).toHaveLength(3);
+      expect(isArrowElement(arrow) && arrow.endArrowhead).toBe("arrow");
+    });
+
+    it(`converts an elbow stroke into an elbow arrow${name}`, () => {
+      draw(elbow());
+
+      expect(h.elements).toHaveLength(1);
+      expect(isElbowArrow(h.elements[0])).toBe(true);
+    });
+  }
+
+  it("converts a curve without a head into a curved line", () => {
+    sketch(arc());
+
+    expect(h.elements.map((element) => element.type)).toEqual(["line"]);
+    expect(h.elements[0].roundness).not.toBeNull();
+  });
+
+  it("upgrades a curve between two shapes to a bound curved arrow", () => {
+    const start = API.createElement({
+      type: "rectangle",
+      x: 0,
+      y: 250,
+      width: 150,
+      height: 100,
+    });
+    const end = API.createElement({
+      type: "rectangle",
+      x: 300,
+      y: 50,
+      width: 150,
+      height: 100,
+    });
+    API.setElements([start, end]);
+
+    sketch(arcPath(250, 300, 150, Math.PI, Math.PI * 1.6));
+
+    const arrow = h.elements.find(isArrowElement)!;
+    expect(arrow).toBeDefined();
+    expect(arrow.roundness).not.toBeNull();
+    expect(arrow.startBinding?.elementId).toBe(start.id);
+    expect(arrow.endBinding?.elementId).toBe(end.id);
+  });
+
+  it("binds an elbow arrow between two shapes", () => {
+    const start = API.createElement({
+      type: "rectangle",
+      x: 0,
+      y: 50,
+      width: 90,
+      height: 100,
+    });
+    const end = API.createElement({
+      type: "rectangle",
+      x: 350,
+      y: 360,
+      width: 100,
+      height: 100,
+    });
+    API.setElements([start, end]);
+
+    sketch(elbow());
+
+    const arrow = h.elements.find(isArrowElement)!;
+    expect(isElbowArrow(arrow)).toBe(true);
+    expect(arrow.startBinding?.elementId).toBe(start.id);
+    expect(arrow.endBinding?.elementId).toBe(end.id);
+  });
 });

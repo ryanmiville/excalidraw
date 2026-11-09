@@ -2,7 +2,8 @@ import { pointFrom } from "@excalidraw/math";
 
 import type { GlobalPoint } from "@excalidraw/math";
 
-// Recognizes open strokes that upstream's (straight-only) recognizer rejects:
+// Recognizes open strokes that the moment-based recognizer (convertToShape)
+// rejects as not straight:
 // smooth curves and orthogonal elbows, each with or without an arrowhead drawn
 // at the end of the same stroke.
 

@@ -685,11 +685,6 @@ describe("line", () => {
 
 // Draw element
 describe("freedraw", () => {
-  beforeEach(() => {
-    // these straight test strokes would otherwise morph into lines
-    h.app.freedrawShapes.enabled = false;
-  });
-
   it("flips an unrotated drawing horizontally correctly", async () => {
     const draw = createAndReturnOneDraw();
     // select draw, since not done automatically
