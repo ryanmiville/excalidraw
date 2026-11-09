@@ -62,6 +62,9 @@ import { LaserPointerButton } from "./LaserPointerButton";
 import { Toast } from "./Toast";
 import { Toolbar } from "./Toolbar";
 import { TabletMode, getTabletVariant } from "./TabletMode/TabletMode";
+import { CustomToolbar } from "./CustomToolbar/CustomToolbar";
+import { CustomizeToolbarDialog } from "./CustomToolbar/CustomizeToolbarDialog";
+import { toolbarConfigAtom } from "./CustomToolbar/toolbarConfig";
 import {
   ViewportStatusBadge,
   ViewportStatusBorder,
@@ -174,6 +177,13 @@ const LayerUI = ({
   const appProps = useAppProps();
   const stylesPanelMode = useStylesPanelMode();
   const isCompactStylesPanel = stylesPanelMode === "compact";
+  const toolbarConfig = useAtomValue(toolbarConfigAtom);
+  const [tabletVariant] = React.useState(getTabletVariant);
+  const customToolbarOn =
+    toolbarConfig.enabled &&
+    !tabletVariant &&
+    editorInterface.formFactor !== "phone" &&
+    !appState.viewModeEnabled;
   const tunnels = useInitializeTunnels();
 
   const spacing = isCompactStylesPanel
@@ -301,7 +311,9 @@ const LayerUI = ({
 
   const renderFixedSideContainer = () => {
     const shouldRenderSelectedShapeActions =
-      defaultUIEnabled && showSelectedShapeActions(appState, elements);
+      defaultUIEnabled &&
+      !customToolbarOn &&
+      showSelectedShapeActions(appState, elements);
 
     const shouldShowStats =
       defaultUIEnabled &&
@@ -348,6 +360,7 @@ const LayerUI = ({
               )}
           </Stack.Col>
           {defaultUIEnabled &&
+            !customToolbarOn &&
             !appState.viewModeEnabled &&
             appState.openDialog?.name !== "elementLinkSelector" && (
               <Section heading="shapes" className="shapes-section">
@@ -462,7 +475,6 @@ const LayerUI = ({
   };
 
   const isSidebarDocked = useAtomValue(isSidebarDockedAtom);
-  const [tabletVariant] = React.useState(getTabletVariant);
   const isSidebarDockedAndFits = !!(
     appState.openSidebar &&
     isSidebarDocked &&
@@ -584,6 +596,7 @@ const LayerUI = ({
         />
       )}
       <ActiveConfirmDialog />
+      {defaultUIEnabled && <CustomizeToolbarDialog />}
       {defaultUIEnabled && appState.openDialog?.name === "elementLinkSelector" && (
         <ElementLinkDialog
           sourceElementId={appState.openDialog.sourceElementId}
@@ -656,6 +669,17 @@ const LayerUI = ({
           >
             {renderWelcomeScreen && <tunnels.WelcomeScreenCenterTunnel.Out />}
             {renderFixedSideContainer()}
+            {customToolbarOn && (
+              <CustomToolbar
+                app={app}
+                appState={appState}
+                setAppState={setAppState}
+                actionManager={actionManager}
+                elements={elements}
+                UIOptions={UIOptions}
+                onLockToggle={onLockToggle}
+              />
+            )}
             {tabletVariant && defaultUIEnabled && !appState.viewModeEnabled && (
               <TabletMode
                 variant={tabletVariant}

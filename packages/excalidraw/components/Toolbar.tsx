@@ -4,6 +4,7 @@ import { useState } from "react";
 import { KEYS } from "@excalidraw/common";
 
 import { useTunnels } from "../context/tunnels";
+import { useSetAtom } from "../editor-jotai";
 import { t } from "../i18n";
 
 import { useEditorInterface, useStylesPanelMode } from "./App";
@@ -24,7 +25,9 @@ import {
   MagicIcon,
   mermaidLogoIcon,
   DotsIcon,
+  settingsIcon,
 } from "./icons";
+import { customizeToolbarOpenAtom } from "./CustomToolbar/toolbarConfig";
 import {
   ArrowToolButton,
   DiamondToolButton,
@@ -51,7 +54,7 @@ import type {
   UIAppState,
 } from "../types";
 
-const ExtraToolsDropdown = ({
+export const ExtraToolsDropdown = ({
   app,
   activeTool,
   setAppState,
@@ -63,6 +66,7 @@ const ExtraToolsDropdown = ({
   UIOptions: AppProps["UIOptions"];
 }) => {
   const [isExtraToolsMenuOpen, setIsExtraToolsMenuOpen] = useState(false);
+  const setCustomizeOpen = useSetAtom(customizeToolbarOpenAtom);
   const isFullStylesPanel = useStylesPanelMode() === "full";
   const { TTDDialogTriggerTunnel } = useTunnels();
 
@@ -192,6 +196,13 @@ const ExtraToolsDropdown = ({
             {t("toolBar.lasso")}
           </DropdownMenu.Item>
         )}
+        <DropdownMenu.Item
+          onSelect={() => setCustomizeOpen(true)}
+          icon={settingsIcon}
+          data-testid="toolbar-customize"
+        >
+          Customize toolbar…
+        </DropdownMenu.Item>
         <div style={{ margin: "6px 0", fontSize: 14, fontWeight: 600 }}>
           Generate
         </div>

@@ -1,0 +1,532 @@
+.excalidraw {
+  .ct-dock {
+    --default-button-size: var(--ct-button);
+    --lg-button-size: var(--ct-button);
+    --default-icon-size: var(--ct-icon);
+    --lg-icon-size: var(--ct-icon);
+
+    position: absolute;
+    z-index: var(--zIndex-layerUI);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    pointer-events: none;
+
+    > * {
+      pointer-events: auto;
+    }
+
+    &--left {
+      left: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      flex-direction: row;
+    }
+    &--right {
+      right: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      flex-direction: row-reverse;
+    }
+    &--top {
+      top: 1rem;
+      left: 50%;
+      transform: translateX(-50%);
+      flex-direction: column;
+    }
+    &--bottom {
+      bottom: 1rem;
+      left: 50%;
+      transform: translateX(-50%);
+      flex-direction: column-reverse;
+    }
+  }
+
+  .ct-toolbar {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 2px;
+    padding: 6px;
+    border-radius: calc(var(--ct-button) * 0.3 + 4px);
+
+    &--vertical {
+      flex-direction: column;
+    }
+
+    .ToolIcon__icon,
+    .App-toolbar__extra-tools-trigger {
+      width: var(--ct-button);
+      height: var(--ct-button);
+      border-radius: calc(var(--ct-button) * 0.28);
+
+      svg {
+        width: var(--ct-icon);
+        height: var(--ct-icon);
+      }
+    }
+
+    .ToolIcon__keybinding {
+      display: none;
+    }
+
+    // undo/redo come from the footer and are styled like a group there
+    .ToolIcon_type_button {
+      background: transparent;
+      border: 0;
+    }
+  }
+
+  .ct-item {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    &__label {
+      margin-top: -2px;
+      margin-bottom: 2px;
+      font-size: 0.65rem;
+      font-weight: 600;
+      color: var(--color-on-surface);
+      opacity: 0.7;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+
+    // the extra tools dropdown hangs off its button
+    .dropdown-menu {
+      margin-top: 0;
+    }
+  }
+
+  .ct-dock--left .App-toolbar__extra-tools-dropdown {
+    top: auto;
+    bottom: 0;
+    left: calc(100% + 0.75rem);
+    right: auto;
+  }
+  .ct-dock--right .App-toolbar__extra-tools-dropdown {
+    top: auto;
+    bottom: 0;
+    right: calc(100% + 0.75rem);
+  }
+  .ct-dock--bottom .App-toolbar__extra-tools-dropdown {
+    top: auto;
+    bottom: calc(100% + 0.75rem);
+  }
+
+  .ct-divider {
+    background: var(--default-border-color);
+    width: 1px;
+    align-self: stretch;
+    margin: 4px 3px;
+  }
+  .ct-toolbar--vertical .ct-divider {
+    width: auto;
+    height: 1px;
+    margin: 3px 4px;
+  }
+
+  // --- quick style buttons on the toolbar -------------------------------------
+
+  .ct-quick {
+    width: var(--ct-button);
+    height: var(--ct-button);
+    border-radius: calc(var(--ct-button) * 0.28);
+    border: 0;
+    padding: 0;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--icon-fill-color);
+    -webkit-tap-highlight-color: transparent;
+
+    &:hover {
+      background: var(--button-hover-bg);
+    }
+    &.is-active,
+    &[data-state="open"] {
+      background: var(--color-surface-primary-container);
+    }
+
+    &__swatch {
+      width: calc(var(--ct-icon) * 1.15);
+      height: calc(var(--ct-icon) * 1.15);
+      border-radius: 50%;
+      box-shadow: 0 0 0 2px var(--island-bg-color),
+        0 0 0 3px var(--default-border-color);
+    }
+    &__dot {
+      border-radius: 50%;
+    }
+    &__palette {
+      width: var(--ct-icon);
+      height: var(--ct-icon);
+      display: flex;
+
+      svg {
+        width: 100%;
+        height: 100%;
+      }
+    }
+  }
+
+  .ct-quick-popover {
+    z-index: var(--zIndex-popup);
+    background: var(--island-bg-color);
+    border-radius: 14px;
+    box-shadow: var(--shadow-island);
+    padding: 10px;
+    animation: ct-pop 0.18s ease-out;
+  }
+  .ct-quick-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  .ct-color {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 0;
+    padding: 0;
+    cursor: pointer;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08) inset;
+
+    &.is-active {
+      box-shadow: 0 0 0 2px var(--island-bg-color),
+        0 0 0 4px var(--color-primary);
+    }
+  }
+  .ct-width {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    border: 0;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+
+    span {
+      border-radius: 50%;
+    }
+    &.is-active {
+      background: var(--color-surface-primary-container);
+    }
+  }
+
+  // --- docked style options ----------------------------------------------------
+
+  .ct-styles {
+    position: relative;
+    width: fit-content;
+    max-height: calc(100vh - 10rem);
+    animation: ct-slide 0.22s cubic-bezier(0.2, 0.9, 0.3, 1.1);
+
+    &--horizontal .compact-shape-actions {
+      flex-direction: row;
+      max-height: none;
+    }
+
+    &--empty {
+      max-width: 11rem;
+      font-size: 0.8rem;
+      line-height: 1.35;
+      color: var(--color-on-surface);
+      opacity: 0.8;
+    }
+
+    &__hide {
+      position: absolute;
+      width: 16px;
+      height: 52px;
+      border: 0;
+      padding: 0;
+      background: var(--island-bg-color);
+      box-shadow: var(--shadow-island);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+
+      span {
+        width: 3px;
+        height: 22px;
+        border-radius: 2px;
+        background: var(--color-gray-40, #b8b8b8);
+      }
+    }
+  }
+
+  .ct-dock--left .ct-styles__hide {
+    right: -16px;
+    top: 50%;
+    transform: translateY(-50%);
+    border-radius: 0 8px 8px 0;
+    clip-path: inset(-10px -10px -10px 0);
+  }
+  .ct-dock--right .ct-styles__hide {
+    left: -16px;
+    top: 50%;
+    transform: translateY(-50%);
+    border-radius: 8px 0 0 8px;
+    clip-path: inset(-10px 0 -10px -10px);
+  }
+  .ct-dock--top .ct-styles__hide,
+  .ct-dock--bottom .ct-styles__hide {
+    width: 52px;
+    height: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+
+    span {
+      width: 22px;
+      height: 3px;
+    }
+  }
+  .ct-dock--top .ct-styles__hide {
+    bottom: -16px;
+    border-radius: 0 0 8px 8px;
+    clip-path: inset(0 -10px -10px -10px);
+  }
+  .ct-dock--bottom .ct-styles__hide {
+    top: -16px;
+    border-radius: 8px 8px 0 0;
+    clip-path: inset(-10px -10px 0 -10px);
+  }
+
+  .ct-peek {
+    width: 22px;
+    height: 58px;
+    border: 0;
+    border-radius: 11px;
+    background: var(--island-bg-color);
+    box-shadow: var(--shadow-island);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+
+    span {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1) inset;
+    }
+  }
+  .ct-dock--top .ct-peek,
+  .ct-dock--bottom .ct-peek {
+    width: 58px;
+    height: 22px;
+  }
+
+  .ct-strip {
+    position: absolute;
+    z-index: var(--zIndex-layerUI);
+    top: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  // --- customize dialog --------------------------------------------------------
+
+  .ct-dialog {
+    .Dialog__content {
+      padding-bottom: 1rem;
+    }
+
+    &__row {
+      margin-bottom: 0.75rem;
+    }
+    &__body.is-off {
+      opacity: 0.45;
+      pointer-events: none;
+    }
+    &__section {
+      margin-bottom: 1rem;
+    }
+    &__label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      opacity: 0.6;
+      margin: 0.75rem 0 0.4rem;
+    }
+  }
+
+  .ct-switch,
+  .ct-check {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .ct-check {
+    font-weight: 400;
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+  }
+
+  .ct-seg {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    padding: 3px;
+    border-radius: 10px;
+    background: var(--color-surface-low);
+
+    button {
+      flex: 1;
+      border: 0;
+      border-radius: 8px;
+      padding: 0.5rem 0.6rem;
+      background: transparent;
+      color: var(--color-on-surface);
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+      white-space: nowrap;
+
+      &.is-active {
+        background: var(--island-bg-color);
+        color: var(--color-on-primary-container);
+        box-shadow: var(--shadow-island);
+      }
+    }
+  }
+
+  .ct-presets,
+  .ct-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+
+    button {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid var(--default-border-color);
+      background: var(--island-bg-color);
+      color: var(--color-on-surface);
+      border-radius: 999px;
+      padding: 0.35rem 0.75rem;
+      font-size: 0.85rem;
+      cursor: pointer;
+
+      &:hover {
+        background: var(--button-hover-bg);
+      }
+    }
+  }
+
+  .ct-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+
+    &__row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 6px;
+      border-radius: 8px;
+      background: var(--color-surface-low);
+
+      button {
+        width: 32px;
+        height: 32px;
+        border: 0;
+        border-radius: 8px;
+        background: transparent;
+        color: var(--color-on-surface);
+        font-size: 1rem;
+        cursor: pointer;
+
+        &:hover:not(:disabled) {
+          background: var(--button-hover-bg);
+        }
+        &:disabled {
+          opacity: 0.25;
+        }
+      }
+    }
+    &__icon {
+      width: 18px;
+      height: 18px;
+      display: inline-flex;
+
+      svg {
+        width: 100%;
+        height: 100%;
+      }
+    }
+    &__name {
+      flex: 1;
+      font-size: 0.9rem;
+    }
+    &__remove {
+      color: var(--color-danger, #e03131) !important;
+    }
+  }
+}
+
+@keyframes ct-slide {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes ct-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+// labels sit inside the button so they don't make the toolbar taller
+.excalidraw .ct-dock--labels {
+  .ct-item__label {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: calc(var(--ct-button) * 0.08);
+    margin: 0;
+    text-align: center;
+    font-size: calc(0.45rem + var(--ct-button) * 0.06);
+  }
+
+  .ct-toolbar .ToolIcon__icon svg,
+  .ct-toolbar .App-toolbar__extra-tools-trigger svg,
+  .ct-quick > * {
+    margin-bottom: calc(var(--ct-button) * 0.2);
+  }
+
+  .ct-toolbar .ToolIcon__icon,
+  .ct-toolbar .App-toolbar__extra-tools-trigger,
+  .ct-quick {
+    width: calc(var(--ct-button) * 1.1);
+  }
+}
+
+.excalidraw.excalidraw--ct-undo
+  .layer-ui__wrapper__footer-left
+  .undo-redo-buttons {
+  display: none;
+}

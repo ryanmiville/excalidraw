@@ -337,6 +337,8 @@ export const StickyNoteToolButton = createToolButton("stickynote");
 export const ImageToolButton = createToolButton("image");
 export const EraserToolButton = createToolButton("eraser");
 export const FrameToolButton = createToolButton("frame");
+export const AutoshapeToolButton = createToolButton("autoshape");
+export const LaserToolButton = createToolButton("laser");
 
 /**
  * The selection tool button — pointer-clicking it while the selection tool

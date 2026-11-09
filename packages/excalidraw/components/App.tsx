@@ -482,7 +482,7 @@ const editorInterfaceContextInitialValue: EditorInterface = {
   canFitSidebar: false,
   isLandscape: true,
 };
-const EditorInterfaceContext = React.createContext<EditorInterface>(
+export const EditorInterfaceContext = React.createContext<EditorInterface>(
   editorInterfaceContextInitialValue,
 );
 EditorInterfaceContext.displayName = "EditorInterfaceContext";

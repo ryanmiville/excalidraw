@@ -64,6 +64,8 @@ import {
   usersIcon,
 } from "../icons";
 
+import { customizeToolbarOpenAtom } from "../CustomToolbar/toolbarConfig";
+
 import "./DefaultItems.scss";
 
 import type { InputDevice } from "../../types";
@@ -705,3 +707,18 @@ Preferences.ToggleViewMode = PreferencesToggleViewModeItem;
 Preferences.ToggleElementProperties = PreferencesToggleElementPropertiesItem;
 
 Preferences.displayName = "Preferences";
+
+export const CustomizeToolbar = () => {
+  const setOpen = useSetAtom(customizeToolbarOpenAtom);
+  return (
+    <DropdownMenuItem
+      data-testid="customize-toolbar-menu-item"
+      icon={settingsIcon}
+      onSelect={() => setOpen(true)}
+      aria-label="Customize toolbar"
+    >
+      Customize toolbar…
+    </DropdownMenuItem>
+  );
+};
+CustomizeToolbar.displayName = "CustomizeToolbar";
