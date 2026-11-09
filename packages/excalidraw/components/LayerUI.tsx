@@ -64,7 +64,7 @@ import { Toolbar } from "./Toolbar";
 import { CustomToolbar } from "./CustomToolbar/CustomToolbar";
 import { CustomizeToolbarDialog } from "./CustomToolbar/CustomizeToolbarDialog";
 import { toolbarConfigAtom } from "./CustomToolbar/toolbarConfig";
-import { TextFlowPicker, TextLabelChip } from "./TextFlows/TextFlows";
+import { TextLabelChip } from "./TextFlows/TextFlows";
 import {
   ViewportStatusBadge,
   ViewportStatusBorder,
@@ -677,10 +677,6 @@ const LayerUI = ({
                 UIOptions={UIOptions}
                 onLockToggle={onLockToggle}
               />
-            )}
-            {/* PROTOTYPE (text flows) */}
-            {!appState.viewModeEnabled && !appState.zenModeEnabled && (
-              <TextFlowPicker />
             )}
             <TextLabelChip app={app} appState={appState} elements={elements} />
             <Footer

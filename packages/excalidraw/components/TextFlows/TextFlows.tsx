@@ -1,7 +1,6 @@
 /**
  * PROTOTYPE (text flows): the flow picker and the "add label" chip.
  */
-import clsx from "clsx";
 import React from "react";
 
 import { sceneCoordsToViewportCoords } from "@excalidraw/common";
@@ -18,46 +17,13 @@ import type {
   NonDeletedExcalidrawElement,
 } from "@excalidraw/element/types";
 
-import { useAtom, useAtomValue } from "../../editor-jotai";
+import { useAtomValue } from "../../editor-jotai";
 
-import {
-  LABEL_MODES,
-  TEXT_FLOWS,
-  labelModeAtom,
-  textFlowAtom,
-} from "./textFlows";
+import { TEXT_FLOWS, textFlowAtom } from "./textFlows";
 
 import "./TextFlows.scss";
 
 import type { AppClassProperties, UIAppState } from "../../types";
-
-export const TextFlowPicker = () => {
-  const [mode, setMode] = useAtom(labelModeAtom);
-  const active = LABEL_MODES.find((option) => option.id === mode)!;
-  return (
-    <div className="text-flow-picker" data-testid="text-flow-picker">
-      <div className="text-flow-picker__row">
-        {LABEL_MODES.map((option) => (
-          <button
-            key={option.id}
-            type="button"
-            className={clsx("text-flow-picker__opt", {
-              "is-active": option.id === mode,
-            })}
-            onClick={() => setMode(option.id)}
-            data-testid={`label-mode-${option.id}`}
-          >
-            {option.letter !== "–" && <b>{option.letter}</b>}
-            {option.label}
-          </button>
-        ))}
-      </div>
-      <div className="text-flow-picker__hint">
-        Labels: {active.hint}. Double-tap a shape, or tap its Aa chip.
-      </div>
-    </div>
-  );
-};
 
 /** how long a fresh Draw-to-shape shape offers its chip */
 const RECENT_MS = 6000;

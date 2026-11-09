@@ -8,11 +8,12 @@
  * shape (bubble / bottom panel / whole screen) or the canvas can zoom in,
  * and a "ghost" of the text is drawn where it will land in the shape.
  */
+import type { ExcalidrawElement } from "@excalidraw/element/types";
+
 import { getLabelMode } from "./textFlows";
 
 import type { LabelMode } from "./textFlows";
 import type App from "../App";
-import type { ExcalidrawElement } from "@excalidraw/element/types";
 
 const LABEL_MIN = 220;
 const SVG_NS = "http://www.w3.org/2000/svg";

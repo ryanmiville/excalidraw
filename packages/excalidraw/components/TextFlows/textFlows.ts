@@ -162,7 +162,9 @@ let currentLabelMode: LabelMode = (() => {
   return "bubble";
 })();
 
-export const getLabelMode = () => currentLabelMode;
+// settled (Ryan, 2026-11-09): labels are written in the bubble
+export const getLabelMode = (): LabelMode => "bubble";
+void currentLabelMode;
 
 const labelModeBaseAtom = atom<LabelMode>(currentLabelMode);
 

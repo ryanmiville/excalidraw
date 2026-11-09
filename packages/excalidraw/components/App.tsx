@@ -7714,8 +7714,8 @@ class App extends React.Component<AppProps, AppState> {
     if (
       this.text.isEditingTextContent() &&
       getTextFlow() !== "stock" &&
-      (DOUBLE_TAP_TEXT_TOOLS.includes(this.state.activeTool.type) ||
-        this.state.activeTool.type === "autoshape") &&
+      // (Shapes may start its next sketch right away; a tap makes nothing)
+      DOUBLE_TAP_TEXT_TOOLS.includes(this.state.activeTool.type) &&
       !(this.state.penMode && event.pointerType === "touch")
     ) {
       return;
