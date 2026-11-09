@@ -1041,6 +1041,12 @@ export const textWysiwyg = ({
     }
 
     isDestroyed = true;
+    // iPadOS Scribble can leave a line break at the end of handwritten text
+    // (it commits the line); never keep trailing line breaks from the
+    // writing box
+    if (scribblePad) {
+      editable.value = editable.value.replace(/[\r\n]+$/, "");
+    }
     // cleanup must be run before onSubmit otherwise when app blurs the wysiwyg
     // it'd get stuck in an infinite loop of blur→onSubmit after we re-focus the
     // wysiwyg on update
