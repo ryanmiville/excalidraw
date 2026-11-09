@@ -390,6 +390,7 @@ import { AppBucketFill } from "./App.bucketFill";
 import { AppToolDrag, TOOL_DRAG_PREVIEW_OPACITY } from "./App.toolDrag";
 import { AppCursor } from "./App.cursor";
 import { AppDrawShape } from "./App.drawshape";
+import { AppFreedrawShapes } from "./App.freedrawShapes";
 import { AppDuplicate } from "./App.duplicate";
 import { AppFlowchart } from "./App.flowchart";
 import { AppModifiers } from "./App.modifiers";
@@ -731,6 +732,7 @@ class App extends React.Component<AppProps, AppState> {
   private lastCompletedCanvasClicks: { x: number; y: number }[] = [];
 
   drawShape = new AppDrawShape(this);
+  freedrawShapes = new AppFreedrawShapes(this);
   laserTrails = new LaserTrails(this);
   eraserTrail = new EraserTrail(this);
   lassoTrail = new LassoTrail(this);
@@ -9748,6 +9750,12 @@ class App extends React.Component<AppProps, AppState> {
           points: [...points, pointFrom<LocalPoint>(dx, dy)],
           pressures,
         });
+
+        // morph the stroke into a recognized shape (or absorb it as the
+        // arrowhead of the line/arrow drawn just before), if it reads as one
+        if (newElement.type === "freedraw") {
+          this.freedrawShapes.handleStrokeEnd(newElement);
+        }
 
         this.actionManager.executeAction(actionFinalize);
 

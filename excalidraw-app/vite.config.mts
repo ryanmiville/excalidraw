@@ -143,7 +143,11 @@ export default defineConfig(({ mode }) => {
   // see `cacheMermaidChunks`). Populated at build time by `lazyChunksPlugin`.
   const mermaidChunkFileNames = new Set<string>();
   // https://vitejs.dev/config/
+  // e.g. "/excalidraw/" when hosted under a sub-path (GitHub Pages)
+  const basePath = envVars.VITE_APP_BASE_PATH || "/";
+
   return {
+    base: basePath,
     server: {
       port: Number(envVars.VITE_APP_PORT || 3000),
       // open the browser
@@ -300,6 +304,9 @@ export default defineConfig(({ mode }) => {
       ViteEjsPlugin(),
       VitePWA({
         registerType: "autoUpdate",
+        // preview deploys: unregister any service worker so every reload
+        // picks up the latest build
+        selfDestroying: envVars.VITE_APP_DISABLE_PWA === "true",
         devOptions: {
           /* set this flag to true to enable in Development mode */
           enabled: envVars.VITE_APP_ENABLE_PWA === "true",
@@ -420,7 +427,7 @@ export default defineConfig(({ mode }) => {
               type: "image/png",
             },
           ],
-          start_url: "/",
+          start_url: basePath,
           id: "excalidraw",
           display: "standalone",
           theme_color: "#121212",

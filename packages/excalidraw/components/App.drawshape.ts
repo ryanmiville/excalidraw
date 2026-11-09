@@ -87,7 +87,7 @@ export class AppDrawShape {
    * "inside" and stay where they were drawn, like the interactive
    * inside→inside flow.
    */
-  private bindRecognizedArrow = (arrow: NonDeleted<ExcalidrawArrowElement>) => {
+  bindRecognizedArrow = (arrow: NonDeleted<ExcalidrawArrowElement>) => {
     const { app } = this;
     const elementsMap = app.scene.getNonDeletedElementsMap();
     const elements = app.scene.getNonDeletedElements();
@@ -168,7 +168,7 @@ export class AppDrawShape {
    * contained in a single shape (an annotation, not a connector), stays a
    * line.
    */
-  private maybeUpgradeLineToArrow = (
+  maybeUpgradeLineToArrow = (
     line: NonDeleted<ExcalidrawLineElement>,
   ): NonDeleted<ExcalidrawArrowElement> | null => {
     const { app } = this;
@@ -240,24 +240,38 @@ export class AppDrawShape {
         );
 
       if (detectedElement) {
-        let element: NonDeletedExcalidrawElement = {
-          ...detectedElement,
-          seed: randomInteger(),
-          opacity: app.state.currentItemOpacity,
-        };
-
-        if (app.state.isBindingEnabled && isLineElement(element)) {
-          element = this.maybeUpgradeLineToArrow(element) ?? element;
-        }
-
-        app.insertNewElement(element);
-
-        if (app.state.isBindingEnabled && isBindingElement(element)) {
-          this.bindRecognizedArrow(element);
-        }
+        this.commitRecognizedElement(detectedElement);
       }
     }
 
     this.trail.clearTrails();
+  };
+
+  /**
+   * Inserts a recognized element into the scene: fresh seed, current
+   * opacity, a connector line upgraded to an arrow, arrow endpoints bound.
+   * Returns the inserted element (which may differ in type from the input).
+   */
+  commitRecognizedElement = (
+    detectedElement: NonDeletedExcalidrawElement,
+  ): NonDeletedExcalidrawElement => {
+    const { app } = this;
+    let element: NonDeletedExcalidrawElement = {
+      ...detectedElement,
+      seed: randomInteger(),
+      opacity: app.state.currentItemOpacity,
+    };
+
+    if (app.state.isBindingEnabled && isLineElement(element)) {
+      element = this.maybeUpgradeLineToArrow(element) ?? element;
+    }
+
+    app.insertNewElement(element);
+
+    if (app.state.isBindingEnabled && isBindingElement(element)) {
+      this.bindRecognizedArrow(element);
+    }
+
+    return element;
   };
 }
