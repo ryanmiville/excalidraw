@@ -947,6 +947,34 @@ describe("autoshape curved & elbow arrows", () => {
     });
   }
 
+  it("shows no preview for a head-less elbow (e.g. a rectangle in progress)", () => {
+    const points = rectanglePath(100, 100, 200, 120);
+    // the first two sides and a bit: reads as an elbow mid-gesture
+    const partial = points.slice(0, 35);
+    mouse.downAt(partial[0][0], partial[0][1]);
+    act(() => {
+      for (const [x, y] of partial.slice(1)) {
+        h.app.drawShape.trail.addPointToPath(x, y);
+        h.app.drawShape.handlePointerMove({ x, y });
+      }
+    });
+    expect(h.state.newElement).toBeNull();
+
+    act(() => {
+      for (const [x, y] of points.slice(35)) {
+        h.app.drawShape.trail.addPointToPath(x, y);
+        h.app.drawShape.handlePointerMove({ x, y });
+      }
+    });
+    mouse.upAt(100, 100);
+    expect(h.elements.map((element) => element.type)).toEqual(["rectangle"]);
+  });
+
+  it("still commits a head-less elbow on release", () => {
+    sketch(elbow());
+    expect(isElbowArrow(h.elements[0])).toBe(true);
+  });
+
   it("converts a curve without a head into a curved line", () => {
     sketch(arc());
 

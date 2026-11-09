@@ -47,6 +47,7 @@ import type {
 
 import { getFrameLikeElements } from "./frame";
 import {
+  isElbowArrow,
   isLinearElement,
   isLineElement,
   isUsingAdaptiveRadius,
@@ -875,8 +876,14 @@ export const convertToShapeHandlePointerMoveFromPointerDown = (
       // Lines get no live preview — nearly every stroke reads as a line at
       // some early point, so previewing them is mostly flicker. Releasing
       // still commits the line: finalize() re-recognizes from the trail when
-      // no preview exists.
-      if (shapePreview && !isLineElement(shapePreview)) {
+      // no preview exists. Same for head-less elbows: a rectangle or diamond
+      // reads as one until it closes.
+      const isNoisyPreview =
+        !!shapePreview &&
+        (isLineElement(shapePreview) ||
+          (isElbowArrow(shapePreview) &&
+            !recognizeShaft(drawShapeTrailPoints)?.hasHead));
+      if (shapePreview && !isNoisyPreview) {
         const prevPreview = app.state.newElement;
         const nextPreview = {
           ...shapePreview,
