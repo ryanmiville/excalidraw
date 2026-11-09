@@ -11,6 +11,9 @@ cd "$(dirname "$0")/.."
     VITE_APP_GIT_SHA="$(git rev-parse --short HEAD)" \
     npx vite build
 )
+# keep the tablet-toolbar prototypes (docs/tablet, built from another branch)
+[ -d docs/tablet ] && mv docs/tablet /tmp/pages-tablet-keep
 rm -rf docs
 cp -r excalidraw-app/build docs
+[ -d /tmp/pages-tablet-keep ] && mv /tmp/pages-tablet-keep docs/tablet
 touch docs/.nojekyll
