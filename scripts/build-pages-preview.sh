@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Builds the app for the GitHub Pages preview at
-# https://ryanmiville.github.io/excalidraw/ (served from /docs on this branch).
+# Builds the app for the GitHub Pages site at
+# https://ryanmiville.github.io/excalidraw/ (served from /docs on master).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 (
@@ -11,9 +11,15 @@ cd "$(dirname "$0")/.."
     VITE_APP_GIT_SHA="$(git rev-parse --short HEAD)" \
     npx vite build
 )
-# keep the tablet-toolbar prototypes (docs/tablet, built from another branch)
-[ -d docs/tablet ] && mv docs/tablet /tmp/pages-tablet-keep
 rm -rf docs
 cp -r excalidraw-app/build docs
-[ -d /tmp/pages-tablet-keep ] && mv /tmp/pages-tablet-keep docs/tablet
+# the old /tablet/ preview link now lands on the main site
+mkdir -p docs/tablet
+cat > docs/tablet/index.html <<'HTML'
+<!doctype html>
+<meta charset="utf-8">
+<meta http-equiv="refresh" content="0; url=/excalidraw/">
+<script>location.replace("/excalidraw/" + location.search + location.hash)</script>
+<a href="/excalidraw/">Excalidraw</a>
+HTML
 touch docs/.nojekyll
