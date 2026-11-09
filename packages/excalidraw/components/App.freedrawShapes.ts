@@ -1,6 +1,8 @@
+import { getStrokeWidthByKey, ROUNDNESS } from "@excalidraw/common";
 import {
   convertToShape,
   getBoundsFromPoints,
+  getHoveredElementForBinding,
   isArrowElement,
   isLinearElement,
   isLineElement,
@@ -17,8 +19,11 @@ import type {
   ExcalidrawLinearElement,
   NonDeleted,
 } from "@excalidraw/element/types";
-import type { GlobalPoint } from "@excalidraw/math";
+import type { GlobalPoint, LocalPoint, Radians } from "@excalidraw/math";
 
+import { recognizeShaft } from "./freedrawShaftRecognition";
+
+import type { ShaftRecognition } from "./freedrawShaftRecognition";
 import type App from "./App";
 
 // Minimum on-screen size (px) of a freedraw stroke before it may morph into a
@@ -36,6 +41,13 @@ const ARROWHEAD_MAX_SCREEN_SIZE = 160;
 // How close (closest stroke point → shaft end) the arrowhead must start.
 const ARROWHEAD_MAX_END_DISTANCE_RATIO = 0.25;
 const ARROWHEAD_MIN_END_DISTANCE_SCREEN = 36;
+
+/** a curved/elbow stroke left as ink, waiting for a separate arrowhead */
+type PendingShaft = {
+  id: string;
+  at: number;
+  shaft: ShaftRecognition;
+};
 
 type LastLinear = {
   id: string;
@@ -59,6 +71,7 @@ export class AppFreedrawShapes {
   enabled = true;
 
   private lastLinear: LastLinear | null = null;
+  private pendingShaft: PendingShaft | null = null;
 
   constructor(private app: App) {}
 
@@ -91,7 +104,7 @@ export class AppFreedrawShapes {
     const zoom = this.app.state.zoom.value;
     const recognized = recognizeShape(points, null, zoom);
     if (recognized.type === "freedraw") {
-      return false;
+      return this.tryCurvedOrElbowArrow(stroke, points);
     }
     const [minX, minY, maxX, maxY] = recognized.boundingBox;
     const screenSize = Math.max(maxX - minX, maxY - minY) * zoom;
@@ -115,6 +128,7 @@ export class AppFreedrawShapes {
     }
 
     this.deleteElement(stroke);
+    this.pendingShaft = null;
     const inserted = this.app.drawShape.commitRecognizedElement(detected);
 
     if (isLinearElement(inserted)) {
@@ -131,7 +145,83 @@ export class AppFreedrawShapes {
     return true;
   };
 
+  /**
+   * Which end of the shaft (start → end) a small follow-up stroke sits at, if
+   * it looks like an arrowhead drawn there.
+   */
+  private matchArrowheadEnd = (
+    points: GlobalPoint[],
+    start: GlobalPoint,
+    end: GlobalPoint,
+  ): "start" | "end" | null => {
+    const zoom = this.app.state.zoom.value;
+    const shaftLength = Math.hypot(end[0] - start[0], end[1] - start[1]);
+
+    const [minX, minY, maxX, maxY] = getBoundsFromPoints(points);
+    const strokeSize = Math.max(maxX - minX, maxY - minY);
+    if (
+      strokeSize > ARROWHEAD_MAX_SHAFT_RATIO * shaftLength ||
+      strokeSize * zoom > ARROWHEAD_MAX_SCREEN_SIZE
+    ) {
+      return null;
+    }
+
+    const distanceTo = (target: GlobalPoint) =>
+      Math.min(
+        ...points.map((p) => Math.hypot(p[0] - target[0], p[1] - target[1])),
+      );
+    const startDistance = distanceTo(start);
+    const endDistance = distanceTo(end);
+    const maxDistance = Math.max(
+      ARROWHEAD_MAX_END_DISTANCE_RATIO * shaftLength,
+      ARROWHEAD_MIN_END_DISTANCE_SCREEN / zoom,
+    );
+    if (Math.min(startDistance, endDistance) > maxDistance) {
+      return null;
+    }
+    return startDistance < endDistance ? "start" : "end";
+  };
+
   private tryAbsorbArrowhead = (
+    stroke: NonDeleted<ExcalidrawFreeDrawElement>,
+    points: GlobalPoint[],
+  ): boolean => {
+    return (
+      this.tryAbsorbIntoPendingShaft(stroke, points) ||
+      this.tryAbsorbIntoLastLinear(stroke, points)
+    );
+  };
+
+  private tryAbsorbIntoPendingShaft = (
+    stroke: NonDeleted<ExcalidrawFreeDrawElement>,
+    points: GlobalPoint[],
+  ): boolean => {
+    const pending = this.pendingShaft;
+    if (!pending || Date.now() - pending.at > ARROWHEAD_FOLLOWUP_MS) {
+      return false;
+    }
+    const ink = this.app.scene.getNonDeletedElementsMap().get(pending.id);
+    if (!ink) {
+      this.pendingShaft = null;
+      return false;
+    }
+    const shaftPoints = pending.shaft.points;
+    const which = this.matchArrowheadEnd(
+      points,
+      shaftPoints[0],
+      shaftPoints[shaftPoints.length - 1],
+    );
+    if (!which) {
+      return false;
+    }
+    this.deleteElement(stroke);
+    this.deleteElement(ink);
+    this.pendingShaft = null;
+    this.commitShaftArrow(pending.shaft, which, ink.frameId);
+    return true;
+  };
+
+  private tryAbsorbIntoLastLinear = (
     stroke: NonDeleted<ExcalidrawFreeDrawElement>,
     points: GlobalPoint[],
   ): boolean => {
@@ -147,41 +237,20 @@ export class AppFreedrawShapes {
       return false;
     }
 
-    const zoom = app.state.zoom.value;
-    const start = LinearElementEditor.getPointAtIndexGlobalCoordinates(
-      shaft,
-      0,
-      elementsMap,
+    const which = this.matchArrowheadEnd(
+      points,
+      LinearElementEditor.getPointAtIndexGlobalCoordinates(
+        shaft,
+        0,
+        elementsMap,
+      ),
+      LinearElementEditor.getPointAtIndexGlobalCoordinates(
+        shaft,
+        -1,
+        elementsMap,
+      ),
     );
-    const end = LinearElementEditor.getPointAtIndexGlobalCoordinates(
-      shaft,
-      -1,
-      elementsMap,
-    );
-    const shaftLength = Math.hypot(end[0] - start[0], end[1] - start[1]);
-
-    const [minX, minY, maxX, maxY] = getBoundsFromPoints(points);
-    const strokeSize = Math.max(maxX - minX, maxY - minY);
-    if (
-      strokeSize > ARROWHEAD_MAX_SHAFT_RATIO * shaftLength ||
-      strokeSize * zoom > ARROWHEAD_MAX_SCREEN_SIZE
-    ) {
-      return false;
-    }
-
-    const distanceTo = (target: GlobalPoint) =>
-      Math.min(
-        ...points.map((p) => Math.hypot(p[0] - target[0], p[1] - target[1])),
-      );
-    const startDistance = distanceTo(start);
-    const endDistance = distanceTo(end);
-    const maxDistance = Math.max(
-      ARROWHEAD_MAX_END_DISTANCE_RATIO * shaftLength,
-      ARROWHEAD_MIN_END_DISTANCE_SCREEN / zoom,
-    );
-    const which: "start" | "end" =
-      startDistance < endDistance ? "start" : "end";
-    if (Math.min(startDistance, endDistance) > maxDistance) {
+    if (!which) {
       return false;
     }
 
@@ -231,6 +300,124 @@ export class AppFreedrawShapes {
     }
 
     return false;
+  };
+
+  /**
+   * A curved or elbow stroke. With an arrowhead drawn in the same stroke, or
+   * connecting a shape to something, it becomes an arrow right away.
+   * Otherwise it stays ink, but a small arrowhead stroke drawn next at one of
+   * its ends still turns it into an arrow.
+   */
+  private tryCurvedOrElbowArrow = (
+    stroke: NonDeleted<ExcalidrawFreeDrawElement>,
+    points: GlobalPoint[],
+  ): boolean => {
+    const { app } = this;
+    const shaft = recognizeShaft(points);
+    if (!shaft) {
+      return false;
+    }
+    const [minX, minY, maxX, maxY] = getBoundsFromPoints(shaft.points);
+    if (
+      Math.max(maxX - minX, maxY - minY) * app.state.zoom.value <
+      MIN_LINEAR_SCREEN_SIZE
+    ) {
+      return false;
+    }
+
+    let connects = false;
+    if (app.state.isBindingEnabled) {
+      const elements = app.scene.getNonDeletedElements();
+      const elementsMap = app.scene.getNonDeletedElementsMap();
+      const [startTarget, endTarget] = [
+        shaft.points[0],
+        shaft.points[shaft.points.length - 1],
+      ].map((point) =>
+        getHoveredElementForBinding(
+          point,
+          elements,
+          elementsMap,
+          app.state.zoom,
+        ),
+      );
+      connects = (!!startTarget || !!endTarget) && startTarget !== endTarget;
+    }
+
+    if (!shaft.hasHead && !connects) {
+      this.pendingShaft = { id: stroke.id, at: Date.now(), shaft };
+      this.lastLinear = null;
+      return false;
+    }
+
+    this.deleteElement(stroke);
+    this.pendingShaft = null;
+    this.commitShaftArrow(shaft, "end", stroke.frameId, !shaft.hasHead);
+    return true;
+  };
+
+  private commitShaftArrow = (
+    shaft: ShaftRecognition,
+    headEnd: "start" | "end",
+    frameId: string | null,
+    autoHead = false,
+  ) => {
+    const { app } = this;
+    const { state } = app;
+    const head: Arrowhead = state.currentItemEndArrowhead ?? "arrow";
+    const [originX, originY] = shaft.points[0];
+    const localPoints = shaft.points.map(([x, y]) =>
+      pointFrom<LocalPoint>(x - originX, y - originY),
+    );
+    const common = {
+      type: "arrow" as const,
+      x: originX,
+      y: originY,
+      startArrowhead: headEnd === "start" ? head : null,
+      endArrowhead: headEnd === "end" ? head : null,
+      points: localPoints,
+      groupIds: [],
+      frameId,
+      locked: false,
+      angle: 0 as Radians,
+      strokeColor: state.currentItemStrokeColor,
+      backgroundColor: state.currentItemBackgroundColor,
+      fillStyle: state.currentItemFillStyle,
+      roughness: state.currentItemRoughness,
+      opacity: state.currentItemOpacity,
+      strokeStyle: state.currentItemStrokeStyle,
+      strokeWidth: getStrokeWidthByKey(
+        "arrow",
+        state.currentItemStrokeWidthKey,
+      ),
+    };
+
+    let arrow;
+    if (shaft.kind === "elbow") {
+      arrow = newArrowElement({ ...common, elbowed: true, roundness: null });
+      app.insertNewElement(arrow);
+      // normalize: elbow arrows route themselves between their endpoints
+      app.scene.mutateElement(arrow, { points: arrow.points });
+    } else {
+      const temp = newArrowElement({
+        ...common,
+        roundness: { type: ROUNDNESS.PROPORTIONAL_RADIUS },
+      });
+      arrow = newArrowElement({
+        ...temp,
+        ...LinearElementEditor.getNormalizeElementPointsAndCoords(temp),
+      });
+      app.insertNewElement(arrow);
+    }
+
+    if (state.isBindingEnabled) {
+      app.drawShape.bindRecognizedArrow(arrow);
+    }
+
+    this.lastLinear = {
+      id: arrow.id,
+      at: Date.now(),
+      autoHeadEnd: autoHead ? headEnd : null,
+    };
   };
 
   private lineToArrow = (

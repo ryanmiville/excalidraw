@@ -1,4 +1,4 @@
-import { isArrowElement } from "@excalidraw/element";
+import { isArrowElement, isElbowArrow } from "@excalidraw/element";
 
 import { Excalidraw } from "../index";
 
@@ -57,6 +57,40 @@ const seg = (
     ]);
   }
   return points;
+};
+
+/** a quarter-ish arc from (cx - r, cy) over the top to (cx + r, cy) */
+const arcPath = (
+  cx: number,
+  cy: number,
+  r: number,
+  from = Math.PI,
+  to = Math.PI * 1.6,
+): [number, number][] => {
+  const points: [number, number][] = [];
+  const steps = 30;
+  for (let i = 0; i <= steps; i++) {
+    const a = from + ((to - from) * i) / steps;
+    points.push([cx + Math.cos(a) * r, cy + Math.sin(a) * r]);
+  }
+  return points;
+};
+
+/** V arrowhead at `tip`, pointing along (dx, dy) */
+const headAt = (
+  tip: [number, number],
+  dx: number,
+  dy: number,
+  size = 25,
+): [number, number][] => {
+  const len = Math.hypot(dx, dy);
+  const ux = dx / len;
+  const uy = dy / len;
+  const arm = (sign: number): [number, number] => [
+    tip[0] - size * (ux * 0.87 - sign * uy * 0.5),
+    tip[1] - size * (uy * 0.87 + sign * ux * 0.5),
+  ];
+  return [...seg(arm(1), tip, 6), ...seg(tip, arm(-1), 6).slice(1)];
 };
 
 const visible = () => h.elements.filter((element) => !element.isDeleted);
@@ -135,6 +169,83 @@ describe("freedraw shape recognition", () => {
     expect(visible()).toEqual([]);
     Keyboard.redo();
     expect(visible().map((e) => e.type)).toEqual(["rectangle"]);
+  });
+
+  it("recognizes a curved arrow drawn in one stroke", () => {
+    const arc = arcPath(200, 200, 150, Math.PI, Math.PI * 1.75);
+    const tip = arc[arc.length - 1];
+    const before = arc[arc.length - 2];
+    const dx = tip[0] - before[0];
+    const dy = tip[1] - before[1];
+    const len = Math.hypot(dx, dy);
+    const ux = dx / len;
+    const uy = dy / len;
+    const arm1: [number, number] = [
+      tip[0] - 30 * (ux * 0.87 - uy * 0.5),
+      tip[1] - 30 * (uy * 0.87 + ux * 0.5),
+    ];
+    const arm2: [number, number] = [
+      tip[0] - 30 * (ux * 0.87 + uy * 0.5),
+      tip[1] - 30 * (uy * 0.87 - ux * 0.5),
+    ];
+    stroke([
+      ...arc,
+      ...seg(tip, arm1, 5).slice(1),
+      ...seg(arm1, tip, 5).slice(1),
+      ...seg(tip, arm2, 5).slice(1),
+    ]);
+
+    const elements = visible();
+    expect(elements.map((e) => e.type)).toEqual(["arrow"]);
+    const arrow = elements[0];
+    expect(isArrowElement(arrow) && arrow.points.length).toBe(3);
+    expect(arrow.roundness).not.toBe(null);
+    expect(isArrowElement(arrow) && arrow.endArrowhead).toBe("arrow");
+  });
+
+  it("turns a curve into an arrow when its head is a separate stroke", () => {
+    const arc = arcPath(200, 200, 150, Math.PI, Math.PI * 1.75);
+    stroke(arc);
+    expect(visible().map((e) => e.type)).toEqual(["freedraw"]);
+    const tip = arc[arc.length - 1];
+    const before = arc[arc.length - 3];
+    stroke(headAt(tip, tip[0] - before[0], tip[1] - before[1]));
+
+    const elements = visible();
+    expect(elements.map((e) => e.type)).toEqual(["arrow"]);
+    expect(elements[0].roundness).not.toBe(null);
+  });
+
+  it("recognizes an elbow arrow between two boxes", () => {
+    stroke(rectanglePath(0, 0, 200, 120));
+    stroke(rectanglePath(400, 300, 200, 120));
+    // right from box A, then down into box B
+    stroke([
+      ...seg([205, 60], [500, 62], 20),
+      ...seg([500, 62], [502, 295], 20),
+    ]);
+
+    const elements = visible();
+    expect(elements.map((e) => e.type).sort()).toEqual([
+      "arrow",
+      "rectangle",
+      "rectangle",
+    ]);
+    const arrow = elements.find(isArrowElement)!;
+    expect(isElbowArrow(arrow)).toBe(true);
+    expect(arrow.startBinding).not.toBe(null);
+    expect(arrow.endBinding).not.toBe(null);
+  });
+
+  it("recognizes a free-standing elbow arrow with a drawn head", () => {
+    stroke([
+      ...seg([0, 0], [300, 0], 20),
+      ...seg([300, 0], [300, 200], 15).slice(1),
+      ...headAt([300, 200], 0, 1, 30).slice(0),
+    ]);
+    const elements = visible();
+    expect(elements.map((e) => e.type)).toEqual(["arrow"]);
+    expect(isElbowArrow(elements[0])).toBe(true);
   });
 
   it("keeps unrecognized strokes and small handwriting as ink", () => {

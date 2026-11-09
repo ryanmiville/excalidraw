@@ -6,6 +6,7 @@ import {
   convertToShapeHandlePointerMoveFromPointerDown,
   getHoveredElementForBinding,
   isBindingElement,
+  isElbowArrow,
   isLineElement,
   LinearElementEditor,
   newArrowElement,
@@ -129,6 +130,12 @@ export class AppDrawShape {
           isMidpointSnappingEnabled,
         );
       }
+    }
+
+    if (isElbowArrow(arrow)) {
+      // re-route the elbow between its (new) bindings
+      app.scene.mutateElement(arrow, { points: arrow.points });
+      return;
     }
 
     if (sameTarget) {
