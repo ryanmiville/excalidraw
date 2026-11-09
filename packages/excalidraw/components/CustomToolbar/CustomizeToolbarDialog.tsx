@@ -156,6 +156,26 @@ export const CustomizeToolbarDialog = () => {
               { value: "strip", label: "Top strip" },
             ]}
           />
+          <div className="ct-dialog__label">Panel</div>
+          <Segmented<"full" | "compact">
+            testId="ct-panel"
+            value={config.panel}
+            onChange={(panel) => setConfig({ panel })}
+            options={[
+              { value: "full", label: "Full options" },
+              { value: "compact", label: "Compact" },
+            ]}
+          />
+          <div className="ct-dialog__label">Panel side</div>
+          <Segmented<"toolbar" | "opposite">
+            testId="ct-side"
+            value={config.stylesSide}
+            onChange={(stylesSide) => setConfig({ stylesSide })}
+            options={[
+              { value: "toolbar", label: "Next to toolbar" },
+              { value: "opposite", label: "Opposite edge" },
+            ]}
+          />
         </div>
 
         <div className="ct-dialog__section">

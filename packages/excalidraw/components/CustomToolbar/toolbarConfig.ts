@@ -91,6 +91,10 @@ export type ToolbarConfig = {
   styles: StylesPlacement;
   /** user tucked the docked style options away */
   stylesHidden: boolean;
+  /** the stock full options panel, or the compact (tablet) one */
+  panel: "full" | "compact";
+  /** options next to the toolbar, or on the opposite edge of the screen */
+  stylesSide: "toolbar" | "opposite";
 };
 
 export const DEFAULT_ITEMS: ToolbarItemId[] = [
@@ -103,6 +107,7 @@ export const DEFAULT_ITEMS: ToolbarItemId[] = [
   "arrow",
   "line",
   "freedraw",
+  "autoshape",
   "text",
   "stickynote",
   "eraser",
@@ -149,6 +154,8 @@ export const DEFAULT_TOOLBAR_CONFIG: ToolbarConfig = {
   items: TOOLBAR_PRESETS[1].items,
   styles: "beside",
   stylesHidden: false,
+  panel: "full",
+  stylesSide: "toolbar",
 };
 
 const STORAGE_KEY = "excalidraw.toolbarConfig";
@@ -180,6 +187,14 @@ const applyUrlOverrides = (config: ToolbarConfig): ToolbarConfig => {
     const params = new URLSearchParams(window.location.search);
     const position = params.get("toolbar");
     const styles = params.get("styles");
+    const panel = params.get("panel");
+    const side = params.get("side");
+    if (panel === "full" || panel === "compact") {
+      config = { ...config, panel };
+    }
+    if (side === "toolbar" || side === "opposite") {
+      config = { ...config, stylesSide: side };
+    }
     const next = { ...config };
     if (position && ["left", "right", "top", "bottom"].includes(position)) {
       next.enabled = true;

@@ -3,6 +3,7 @@ import { Popover } from "radix-ui";
 import React from "react";
 
 import {
+  CLASSES,
   COLOR_PALETTE,
   DEFAULT_ELEMENT_STROKE_COLOR_INDEX,
 } from "@excalidraw/common";
@@ -13,7 +14,7 @@ import type { NonDeletedExcalidrawElement } from "@excalidraw/element/types";
 
 import { useAtom } from "../../editor-jotai";
 import { t } from "../../i18n";
-import { CompactShapeActions } from "../Actions";
+import { CompactShapeActions, SelectedShapeActions } from "../Actions";
 import {
   EditorInterfaceContext,
   useEditorInterface,
@@ -94,6 +95,13 @@ const popoverSide = (config: ToolbarConfig) =>
     bottom: "top",
   }[config.position] as "right" | "left" | "bottom" | "top");
 
+const OPPOSITE = {
+  left: "right",
+  right: "left",
+  top: "bottom",
+  bottom: "top",
+} as const;
+
 /** compact styles panel, regardless of screen size */
 const ForceCompact = ({ children }: { children: React.ReactNode }) => {
   const editorInterface = useEditorInterface();
@@ -106,28 +114,65 @@ const ForceCompact = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
+/** the stock full options panel, regardless of screen size */
+const ForceFull = ({ children }: { children: React.ReactNode }) => {
+  const editorInterface = useEditorInterface();
+  return (
+    <EditorInterfaceContext.Provider
+      value={{
+        ...editorInterface,
+        formFactor: "desktop",
+        desktopUIMode: "full",
+      }}
+    >
+      {children}
+    </EditorInterfaceContext.Provider>
+  );
+};
+
 const StylesPanel = ({
   app,
   appState,
   actionManager,
   setAppState,
   horizontal,
+  full,
   onHide,
-}: Props & { horizontal?: boolean; onHide?: () => void }) => (
-  <Island
-    className={clsx("ct-styles", { "ct-styles--horizontal": horizontal })}
-    padding={0}
+}: Props & { horizontal?: boolean; full?: boolean; onHide?: () => void }) => (
+  <div
+    className={clsx("ct-styles", {
+      "ct-styles--horizontal": horizontal && !full,
+      "ct-styles--full": full,
+    })}
     data-testid="ct-styles"
   >
-    <ForceCompact>
-      <CompactShapeActions
-        appState={appState}
-        elementsMap={app.scene.getNonDeletedElementsMap()}
-        renderAction={actionManager.renderAction}
-        app={app}
-        setAppState={setAppState}
-      />
-    </ForceCompact>
+    {full ? (
+      <Island
+        className={clsx(CLASSES.SHAPE_ACTIONS_MENU, "ct-styles__island")}
+        padding={2}
+      >
+        <ForceFull>
+          <SelectedShapeActions
+            appState={appState}
+            elementsMap={app.scene.getNonDeletedElementsMap()}
+            renderAction={actionManager.renderAction}
+            app={app}
+          />
+        </ForceFull>
+      </Island>
+    ) : (
+      <Island className="ct-styles__island" padding={0}>
+        <ForceCompact>
+          <CompactShapeActions
+            appState={appState}
+            elementsMap={app.scene.getNonDeletedElementsMap()}
+            renderAction={actionManager.renderAction}
+            app={app}
+            setAppState={setAppState}
+          />
+        </ForceCompact>
+      </Island>
+    )}
     {onHide && (
       <button
         type="button"
@@ -139,7 +184,7 @@ const StylesPanel = ({
         <span />
       </button>
     )}
-  </Island>
+  </div>
 );
 
 const setColor = (actionManager: ActionManager, color: string) =>
@@ -384,6 +429,10 @@ export const CustomToolbar = (props: Props) => {
 
   // --- where the full style options go ---------------------------------------
 
+  const full = config.panel === "full";
+  const opposite = config.stylesSide === "opposite";
+  const panelEdge = opposite ? OPPOSITE[config.position] : config.position;
+  const panelVertical = panelEdge === "left" || panelEdge === "right";
   let besidePanel: React.ReactNode = null;
   let peek: React.ReactNode = null;
 
@@ -404,7 +453,8 @@ export const CustomToolbar = (props: Props) => {
       besidePanel = (
         <StylesPanel
           {...props}
-          horizontal={!vertical}
+          horizontal={!panelVertical}
+          full={full}
           onHide={() => setConfig({ stylesHidden: true })}
         />
       );
@@ -416,7 +466,8 @@ export const CustomToolbar = (props: Props) => {
     besidePanel = relevant ? (
       <StylesPanel
         {...props}
-        horizontal={!vertical}
+        horizontal={!panelVertical}
+        full={full}
         onHide={() => setStylesOpen(false)}
       />
     ) : (
@@ -429,7 +480,7 @@ export const CustomToolbar = (props: Props) => {
   const strip =
     config.styles === "strip" && relevant ? (
       <div className="ct-strip">
-        <StylesPanel {...props} horizontal />
+        <StylesPanel {...props} horizontal full={false} />
       </div>
     ) : null;
 
@@ -441,6 +492,7 @@ export const CustomToolbar = (props: Props) => {
         className={clsx(
           "ct-dock",
           `ct-dock--${config.position}`,
+          `ct-edge--${config.position}`,
           `ct-dock--size-${config.size}`,
           { "ct-dock--labels": config.labels },
         )}
@@ -474,9 +526,21 @@ export const CustomToolbar = (props: Props) => {
           {config.styles === "button" && stylesButton}
           {config.styles === "inline" && inlineControls}
         </Island>
-        {peek}
-        {besidePanel}
+        {!opposite && peek}
+        {!opposite && besidePanel}
       </div>
+      {opposite && (peek || besidePanel) && (
+        <div
+          className={clsx(
+            "ct-side",
+            `ct-side--${panelEdge}`,
+            `ct-edge--${panelEdge}`,
+          )}
+        >
+          {peek}
+          {besidePanel}
+        </div>
+      )}
       {strip}
     </>
   );

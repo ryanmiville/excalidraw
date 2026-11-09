@@ -30,6 +30,7 @@ import {
 import { customizeToolbarOpenAtom } from "./CustomToolbar/toolbarConfig";
 import {
   ArrowToolButton,
+  AutoshapeToolButton,
   DiamondToolButton,
   EllipseToolButton,
   EraserToolButton,
@@ -314,7 +315,10 @@ export const Toolbar = ({
         {isCompactStylesPanel ? (
           <FreedrawToolPopover {...toolProps} />
         ) : (
-          <FreedrawToolButton {...toolProps} />
+          <>
+            <FreedrawToolButton {...toolProps} />
+            <AutoshapeToolButton {...toolProps} />
+          </>
         )}
         <TextToolButton {...toolProps} />
         <StickyNoteToolButton {...toolProps} />

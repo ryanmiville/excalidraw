@@ -222,10 +222,51 @@
 
   // --- docked style options ----------------------------------------------------
 
+  .ct-side {
+    position: absolute;
+    z-index: var(--zIndex-layerUI);
+    display: flex;
+    align-items: center;
+    pointer-events: none;
+
+    > * {
+      pointer-events: auto;
+    }
+
+    &--right {
+      right: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+    &--left {
+      left: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+    &--top {
+      top: 1rem;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+    &--bottom {
+      bottom: 1rem;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+  }
+
+  .ct-styles__island {
+    max-height: calc(100vh - 9rem);
+    overflow-y: auto;
+  }
+  .ct-styles--full .ct-styles__island {
+    position: relative;
+    width: 12.5rem;
+  }
+
   .ct-styles {
     position: relative;
     width: fit-content;
-    max-height: calc(100vh - 10rem);
     animation: ct-slide 0.22s cubic-bezier(0.2, 0.9, 0.3, 1.1);
 
     &--horizontal .compact-shape-actions {
@@ -263,22 +304,22 @@
     }
   }
 
-  .ct-dock--left .ct-styles__hide {
+  .ct-edge--left .ct-styles__hide {
     right: -16px;
     top: 50%;
     transform: translateY(-50%);
     border-radius: 0 8px 8px 0;
     clip-path: inset(-10px -10px -10px 0);
   }
-  .ct-dock--right .ct-styles__hide {
+  .ct-edge--right .ct-styles__hide {
     left: -16px;
     top: 50%;
     transform: translateY(-50%);
     border-radius: 8px 0 0 8px;
     clip-path: inset(-10px 0 -10px -10px);
   }
-  .ct-dock--top .ct-styles__hide,
-  .ct-dock--bottom .ct-styles__hide {
+  .ct-edge--top .ct-styles__hide,
+  .ct-edge--bottom .ct-styles__hide {
     width: 52px;
     height: 16px;
     left: 50%;
@@ -289,12 +330,12 @@
       height: 3px;
     }
   }
-  .ct-dock--top .ct-styles__hide {
+  .ct-edge--top .ct-styles__hide {
     bottom: -16px;
     border-radius: 0 0 8px 8px;
     clip-path: inset(0 -10px -10px -10px);
   }
-  .ct-dock--bottom .ct-styles__hide {
+  .ct-edge--bottom .ct-styles__hide {
     top: -16px;
     border-radius: 8px 8px 0 0;
     clip-path: inset(-10px -10px 0 -10px);
@@ -320,13 +361,14 @@
       box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1) inset;
     }
   }
-  .ct-dock--top .ct-peek,
-  .ct-dock--bottom .ct-peek {
+  .ct-edge--top .ct-peek,
+  .ct-edge--bottom .ct-peek {
     width: 58px;
     height: 22px;
   }
 
   .ct-strip {
+    pointer-events: auto;
     position: absolute;
     z-index: var(--zIndex-layerUI);
     top: 1rem;
